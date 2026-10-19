@@ -64,3 +64,16 @@ docs/
 /Claude outputs/
 /scripts/auditar-conciliacao.php
 /scripts/finish-conciliacao.cjs
+
+# Reversa — análise local, não faz parte do sistema em execução
+.agents/
+.reversa/
+.cursorrules
+_reversa_*/
+reversa/
+
+# Ata e resultados locais de teste
+/*.docx
+Front_SVT/test-results/
+Front_SVT/playwright-report/
+Front_SVT/blob-report/
