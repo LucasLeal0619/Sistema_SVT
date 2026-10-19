@@ -1,141 +1,95 @@
-# SIPED — Sistema Integrado Pedagógico
+# SVT — Sistema de Visitas Técnicas
 
-Sistema interno do SENAC DF (CPED/DEP) para gestão pedagógica, portfólio de cursos e processos educacionais.
+Sistema do Senac DF para solicitar, analisar, transportar e registrar visitas técnicas.
 
-**Arquitetura:** API Laravel 12 (`Back_SIPED`, porta 8000) + SPA Vue 3 (`Front_SIPED`, porta 5173) + MySQL.
+A interface é uma SPA Vue 3 em `Front_SVT`. A API é Laravel 12 com Sanctum em `Back_SVT`. O banco de desenvolvimento é MySQL (`SVT` no exemplo). Os testes da API usam SQLite em memória. No desenvolvimento, o Vite encaminha `/api`, `/IMG` e `/storage` para `http://127.0.0.1:8000`.
 
-## Equipe
+A autorização que vale é a da API. O menu só esconde atalhos.
 
-Lucas Leal, Pedro Comis, Hillary Oliveira, Paloma Leandro e Maria Stephanny.
+## Fluxo da visita
 
-## Quem usa
+A etapa fica em `etapa`. O rótulo legível fica em `status`.
 
-| Perfil | Papel |
+```text
+rascunho → núcleo pedagógico → coordenação do eixo → direção pedagógica → logística
+         → transporte definido → realizada → relatório entregue
+```
+
+Recusa e cancelamento saem dessa linha. A recusa guarda quem recusou: núcleo, coordenação ou direção. O motivo é obrigatório na recusa.
+
+| Quem | O que faz |
 |---|---|
-| **Administrador** | Gestão do sistema, usuários e auditoria |
-| **Editor** | Cadastro, edição, exclusão e importação |
-| **Consultor** | Consulta (sem alterar nem importar) |
+| Instrutor | Abre o pedido da própria turma, edita o rascunho, cancela enquanto está em rascunho ou no núcleo, marca a visita como realizada e anexa o relatório em PDF ou Word. |
+| Núcleo Pedagógico | Aprova ou recusa só a própria unidade. |
+| Coordenação de Eixo | Aprova ou recusa só a área do próprio eixo. |
+| Direção Pedagógica | Última análise pedagógica, nos cinco eixos. |
+| NULOG | Registra veículo, placa, data, horário e motorista. Não aprova nem recusa. |
+| Administrador | Cuida dos acessos, vê a auditoria e o histórico da turma. Não analisa pedido. |
 
-## O que o sistema faz
+Editor e Consultor ainda existem no cadastro e consultam visitas. O formulário de usuários não oferece esses papéis.
 
-- Portfólio: cursos, plano de metas, PCA e eixos oficiais
-- Processos: visitas técnicas, horas pedagógicas, ações extensivas, eventos e jornada
-- Ciclos de gestão (um seletor no topo vale para as telas periódicas)
-- Dashboard, importação de Excel (prévia + upsert) e relatórios em PDF
-- Ferramentas da CPED: Kanban, fluxograma, organograma e carômetro
-- Controle de acesso por perfil; usuário inativo não entra
+Os cinco eixos são Gastronomia e Turismo, Ambiente e Saúde, Gestão e Moda, Tecnologia e Economia Criativa, e Beleza e Cuidado Pessoal. Cada um tem a coordenação correspondente.
 
-## Como rodar em outra máquina
+## Cota
 
-Requisitos no PATH: **PHP 8.2+**, **Composer**, **Node 20.19+ ou 22.12+**. MySQL do XAMPP ligado. **Não clone dentro do OneDrive.**
+A cota em `config/svt.php` é provisória. Consomem o limite as etapas `aprovada`, `realizada` e `relatorio`. Pedido em tramitação, rascunho, recusa e cancelamento não consomem. Acima do limite o envio segue, com justificativa. Período, carga horária e a lista definitiva de cursos ainda dependem do cliente.
 
-### 1. Clone
+## O que cada perfil vê
+
+- Instrutor: as próprias visitas e os relatórios delas.
+- Núcleo: a unidade cadastrada no acesso.
+- Coordenação: o eixo da própria área.
+- Direção, administrador, editor e consultor: a consulta não aplica filtro extra de unidade ou eixo.
+- NULOG: visitas aguardando transporte, com transporte definido, realizadas ou com relatório.
+
+A lista de visitas abre pelo botão **Visualizar**. Editar rascunho e cancelar ficam na ficha, quando a regra permite.
+
+O histórico por turma e por ano aparece só para o administrador, ligado ao cadastro da turma (`turma_id`), não ao nome digitado. A auditoria geral também é só do administrador: registro append-only, sem senha, token ou conteúdo de arquivo.
+
+Relatórios gerenciais respeitam o mesmo recorte do perfil. Os indicadores separam solicitação, visita realizada e a cota provisória.
+
+## Como rodar
+
+Requisitos: PHP 8.2+, Composer, Node 20+, MySQL.
 
 ```cmd
 git clone https://github.com/LucasLeal0619/Sistema_SVT.git
 cd Sistema_SVT
-```
-
-### 2. Crie o banco
-
-No MySQL (phpMyAdmin ou cliente):
-
-```sql
-CREATE DATABASE SIPED;
-```
-
-### 3. Configure o `.env` desta máquina
-
-O `local-start.cmd` copia os exemplos se ainda não existirem. Confira principalmente o banco em `Back_SIPED\.env`:
-
-| Variável | Valor típico |
-|---|---|
-| `DB_HOST` | `127.0.0.1` |
-| `DB_PORT` | porta do MySQL neste XAMPP (`3306`, às vezes `3307`/`3308`) |
-| `DB_DATABASE` | `SIPED` |
-| `DB_USERNAME` | `root` |
-| `DB_PASSWORD` | senha deste MySQL, ou vazio |
-
-O front usa `Front_SIPED\.env` com `VITE_API_URL=http://127.0.0.1:8000`.
-
-### 4. Suba o projeto
-
-Na raiz do repositório:
-
-```cmd
 local-start.cmd
 ```
 
-O script instala dependências, gera a `APP_KEY`, roda migrations, limpa cache, cria o link de fotos (`php artisan storage:link`), faz o seed e pergunta se sobe back e front. Quando perguntar, digite **s**. Não feche as duas janelas.
+Crie o banco `SVT` no MySQL antes do seed. A aplicação abre em http://127.0.0.1:5173/login e a API em http://127.0.0.1:8000.
 
-Abra **http://127.0.0.1:5173/login**
+Logins de demonstração, depois do seed:
 
-Se o login falhar, a tela mostra a mensagem da API. Feche as janelas e rode `local-start.cmd` de novo.
-
-### Logins de teste (após o seed)
-
-| Perfil | E-mail | Senha |
+| Papel | E-mail | Senha |
 |---|---|---|
 | Administrador | `administrador@df.senac.br` | `senac2025` |
-| Editor | `editor@df.senac.br` | `editor2025` |
-| Consultor | `consultor@df.senac.br` | `consultor2025` |
+| Instrutor | `instrutor@df.senac.br` | `svt2026` |
+| Núcleo pedagógico | `nucleo@df.senac.br` | `svt2026` |
+| Coordenação de Gastronomia e Turismo | `cped.gastronomia@df.senac.br` | `svt2026` |
+| Coordenação de Ambiente e Saúde | `cped.ambiente@df.senac.br` | `svt2026` |
+| Coordenação de Gestão | `cped.gestao@df.senac.br` | `svt2026` |
+| Coordenação de Tecnologia | `cped.tecnologia@df.senac.br` | `svt2026` |
+| Coordenação de Beleza | `cped.beleza@df.senac.br` | `svt2026` |
+| Direção pedagógica | `direcao@df.senac.br` | `svt2026` |
+| NULOG | `nulog@df.senac.br` | `svt2026` |
 
-## Se preferir os comandos na mão
+## Testes
 
-```cmd
-copy Back_SIPED\.env.example Back_SIPED\.env
-copy Front_SIPED\.env.example Front_SIPED\.env
-```
-
-Ajuste o `Back_SIPED\.env` (banco desta máquina). Depois:
-
-```cmd
-cd Back_SIPED
-composer install
-php artisan key:generate
-php artisan migrate --force
-php artisan optimize:clear
-php artisan storage:link
-php artisan db:seed --force
-
-cd ..\Front_SIPED
-npm install
-```
-
-Em dois terminais:
+Na API, a suíte que existe é a de feature. A pasta `tests/Unit` não entra no `phpunit.xml` padrão.
 
 ```cmd
-cd Back_SIPED
-php artisan serve --host=127.0.0.1 --port=8000
+cd Back_SVT
+php vendor/bin/phpunit --testsuite Feature
 ```
+
+No front:
 
 ```cmd
-cd Front_SIPED
-npm run dev
+cd Front_SVT
+npm run build
+npx playwright test
 ```
 
-A ordem importa: as tabelas (inclusive `cache`) precisam existir **antes** de `optimize:clear`. Se o migrate falhar, não suba o sistema.
-
-`storage:link` aponta `Back_SIPED/public/storage` para `Back_SIPED/storage/app/public`. Sem esse link as fotos da CPED e do carômetro não abrem. Se você mover ou renomear a pasta do projeto, rode `php artisan storage:link` de novo.
-
-## Problemas comuns
-
-- **MySQL recusou a conexão:** confira Start no XAMPP, porta, usuário e senha do `.env` desta máquina — não copie o `.env` de outro computador.
-- **Fotos da CPED quebradas depois de mover a pasta:** `cd Back_SIPED` e `php artisan storage:link`.
-- **Porta 8000 ou 5173 ocupada:** o `local-start.cmd` encerra o processo antigo nessas portas.
-- **Disco C: cheio:** o script avisa e não apaga arquivos. Libere Temp/Downloads antes de continuar.
-- **Health check da API:** `GET http://127.0.0.1:8000/up` deve responder 200.
-
-## Homologação
-
-Não use `php artisan serve` nem `npm run dev` como servidor definitivo.
-
-- Front: `cd Front_SIPED && npm run build` e sirva os estáticos pelo servidor web.
-- API: IIS/Apache/Nginx apontando para `Back_SIPED/public`.
-- Produção: `APP_DEBUG=false` e `LOG_LEVEL=warning`.
-
-## Estrutura
-
-- `Back_SIPED/` — API Laravel
-- `Front_SIPED/` — SPA Vue 3 + Vite
-- `local-start.cmd` — instala, migra, seeda e sobe os dois no Windows
+O Playwright sobe a API e o Vite em portas separadas, com SQLite próprio. Não aponta para o MySQL de desenvolvimento.
