@@ -3,19 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Eixo extends Model
 {
-    protected $fillable = [
-        'nome',
-        'slug',
-        'ordem',
-    ];
+    protected $fillable = ['nome', 'ativo'];
 
-    public function segmentos(): HasMany
+    protected function casts(): array
     {
-        return $this->hasMany(Segmento::class)->orderBy('nome');
+        return ['ativo' => 'boolean'];
     }
 
     public function cursos(): HasMany
@@ -23,8 +20,8 @@ class Eixo extends Model
         return $this->hasMany(Curso::class);
     }
 
-    public function ofertas(): HasMany
+    public function coordenadores(): BelongsToMany
     {
-        return $this->hasMany(CursoPorEixo::class);
+        return $this->belongsToMany(Usuario::class, 'usuario_eixos');
     }
 }

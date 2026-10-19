@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\PaginatesIndex;
 use App\Http\Requests\UsuarioRequest;
 use App\Models\Usuario;
-use App\Services\CadastroAuditoriaService;
+use App\Services\AuditoriaService;
 use App\Services\UsuarioFotoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,8 +16,8 @@ class UsuarioController extends Controller
 {
     use PaginatesIndex;
     public function __construct(
-        private CadastroAuditoriaService $auditoria,
         private UsuarioFotoService $fotos,
+        private AuditoriaService $auditoria,
     ) {
     }
 
@@ -27,6 +27,10 @@ class UsuarioController extends Controller
 
         if ($request->filled('perfil')) {
             $query->where('perfil', $request->perfil);
+        }
+
+        if ($request->filled('unidade')) {
+            $query->where('unidade', $request->unidade);
         }
 
         if ($request->filled('status')) {
@@ -62,8 +66,17 @@ class UsuarioController extends Controller
         }
 
         $usuario = Usuario::create($dados);
-
-        $this->auditoria->registrarModelo(CadastroAuditoriaService::ACAO_CRIAR, $usuario);
+        $usuario->sincronizarEixoPelaArea();
+        $this->auditoria->registrar(
+            categoria: 'usuarios',
+            acao: 'usuario_criado',
+            resultado: 'sucesso',
+            usuario: $request->user(),
+            entidadeTipo: 'usuario',
+            entidadeId: (string) $usuario->id,
+            unidade: $usuario->unidade,
+            novo: $usuario->only(['nome', 'email', 'perfil', 'status', 'unidade', 'area', 'telefone']),
+        );
 
         return response()->json([
             'message' => 'Usuário cadastrado com sucesso. Informe o e-mail e a senha ao colaborador.',
@@ -110,6 +123,9 @@ class UsuarioController extends Controller
             ], 422);
         }
 
+        $campos = ['nome', 'email', 'perfil', 'status', 'unidade', 'area', 'telefone'];
+        $antes = $usuario->only($campos);
+        $senhaTrocada = array_key_exists('senha', $dados);
         $fotoAnterior = $usuario->caminhoFoto();
 
         if ($request->boolean('remover_foto')) {
@@ -123,20 +139,57 @@ class UsuarioController extends Controller
         $usuario->fill($dados);
         $alterados = array_keys($usuario->getDirty());
         $usuario->save();
+        $usuario->sincronizarEixoPelaArea();
 
-        // Inativação ou troca de senha invalida sessões abertas.
-        if (in_array('status', $alterados, true) && $usuario->status === false) {
-            $usuario->tokens()->delete();
-        } elseif (in_array('senha', $alterados, true)) {
-            $usuario->tokens()->delete();
+        $anterior = [];
+        $novo = [];
+        foreach ($campos as $campo) {
+            if (! in_array($campo, $alterados, true)) {
+                continue;
+            }
+            $anterior[$campo] = $antes[$campo] ?? null;
+            $novo[$campo] = $usuario->{$campo};
+        }
+        if ($anterior !== [] || $novo !== []) {
+            $this->auditoria->registrar(
+                categoria: 'usuarios',
+                acao: 'usuario_atualizado',
+                resultado: 'sucesso',
+                usuario: $request->user(),
+                entidadeTipo: 'usuario',
+                entidadeId: (string) $usuario->id,
+                unidade: $usuario->unidade,
+                anterior: $anterior,
+                novo: $novo,
+            );
+        }
+        if ($senhaTrocada) {
+            $this->auditoria->registrar(
+                categoria: 'usuarios',
+                acao: 'senha_redefinida',
+                resultado: 'sucesso',
+                usuario: $request->user(),
+                entidadeTipo: 'usuario',
+                entidadeId: (string) $usuario->id,
+                unidade: $usuario->unidade,
+                novo: ['ocorrencia' => 'senha_redefinida'],
+            );
         }
 
-        $this->auditoria->registrarModelo(
-            CadastroAuditoriaService::ACAO_EDITAR,
-            $usuario,
-            null,
-            ['alterados' => $alterados],
-        );
+        // Inativação ou troca de senha invalida sessões abertas.
+        if ((in_array('status', $alterados, true) && $usuario->status === false) || in_array('senha', $alterados, true)) {
+            $usuario->tokens()->delete();
+            $this->auditoria->registrar(
+                categoria: 'usuarios',
+                acao: 'tokens_revogados',
+                resultado: 'sucesso',
+                usuario: $request->user(),
+                entidadeTipo: 'usuario',
+                entidadeId: (string) $usuario->id,
+                unidade: $usuario->unidade,
+                novo: ['motivo' => $senhaTrocada ? 'senha_redefinida' : 'desativacao'],
+            );
+        }
 
         return response()->json([
             'message' => 'Usuário atualizado com sucesso.',
@@ -158,11 +211,19 @@ class UsuarioController extends Controller
             ], 422);
         }
 
+        $this->auditoria->registrar(
+            categoria: 'usuarios',
+            acao: 'usuario_excluido',
+            resultado: 'sucesso',
+            usuario: $request->user(),
+            entidadeTipo: 'usuario',
+            entidadeId: (string) $usuario->id,
+            unidade: $usuario->unidade,
+            anterior: $usuario->only(['nome', 'email', 'perfil', 'status', 'unidade', 'area']),
+        );
         $this->fotos->apagar($usuario->caminhoFoto());
         $usuario->tokens()->delete();
         $usuario->delete();
-
-        $this->auditoria->registrarModelo(CadastroAuditoriaService::ACAO_EXCLUIR, $usuario);
 
         return response()->json([
             'message' => 'Usuário excluído com sucesso.',

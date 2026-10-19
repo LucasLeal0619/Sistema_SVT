@@ -8,15 +8,7 @@ return new class extends Migration
 {
     /** @var list<string> */
     private array $tabelas = [
-        'cursos',
-        'plano_de_metas',
-        'pcas',
-        'curso_por_eixos',
         'visita_tecnicas',
-        'hora_pedagogicas',
-        'acao_extensivas',
-        'eventos',
-        'cped_equipes',
     ];
 
     public function up(): void

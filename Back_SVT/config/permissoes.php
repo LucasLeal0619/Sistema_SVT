@@ -1,71 +1,40 @@
 <?php
 
 /**
- * Níveis de acesso do SIPED.
+ * Acesso do SVT.
  *
- * Administrador — gerencia usuários e tem acesso total.
- * Editor — cria e altera dados do portfólio (sem gerenciar usuários).
- * Consultor — apenas consulta (leitura).
+ * Cinco funções movem a visita: instrutor, núcleo, coordenação, direção e NULOG.
+ * O administrador não pede, não aprova e não marca transporte.
+ * O trabalho dele é criar esses acessos, com a unidade do núcleo e a área do eixo na coordenação.
  */
 return [
-
     'perfis' => [
         'Administrador',
         'Editor',
         'Consultor',
+        'Instrutor',
+        'Núcleo Pedagógico',
+        'Coordenação CPED',
+        'Direção Pedagógica',
+        'NULOG',
     ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Permissões por ação
-    |--------------------------------------------------------------------------
-    |
-    | Cada ação lista os perfis autorizados. Funções não se sobrepõem:
-    | - só o Administrador gerencia usuários
-    | - só Administrador e Editor alteram dados
-    | - Consultor apenas consulta
-    |
-    */
 
     'acoes' => [
         'gerenciar_usuarios' => ['Administrador'],
-        'editar_dados' => ['Administrador', 'Editor'],
-        'consultar_dados' => ['Administrador', 'Editor', 'Consultor'],
-        'importar_dados' => ['Administrador', 'Editor'],
-        'ver_relatorios' => ['Administrador', 'Editor', 'Consultor'],
         'consultar_auditoria' => ['Administrador'],
+        'editar_dados' => ['Administrador', 'Editor', 'Instrutor'],
+        'consultar_dados' => ['Administrador', 'Editor', 'Consultor', 'Instrutor', 'Núcleo Pedagógico', 'Coordenação CPED', 'Direção Pedagógica', 'NULOG'],
+        'ver_relatorios' => ['Administrador', 'Editor', 'Consultor', 'Instrutor', 'Núcleo Pedagógico', 'Coordenação CPED', 'Direção Pedagógica', 'NULOG'],
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Rotas do menu (front) por perfil
-    |--------------------------------------------------------------------------
-    */
-
     'menu' => [
-        'inicio' => ['Administrador', 'Editor', 'Consultor'],
-        'dashboard' => ['Administrador', 'Editor', 'Consultor'],
-        'relatorios' => ['Administrador', 'Editor', 'Consultor'],
-        'importacoes' => ['Administrador', 'Editor'],
-        'auditoria' => ['Administrador'],
-        'cursos' => ['Administrador', 'Editor', 'Consultor'],
-        'ciclos' => ['Administrador', 'Editor', 'Consultor'],
-        'ciclos-portfolio' => ['Administrador', 'Editor', 'Consultor'],
-        'plano-de-metas' => ['Administrador', 'Editor', 'Consultor'],
-        'pca' => ['Administrador', 'Editor', 'Consultor'],
-        'controle-de-resolucoes' => ['Administrador', 'Editor', 'Consultor'],
-        'termos-de-referencia' => ['Administrador', 'Editor', 'Consultor'],
-        'eixos' => ['Administrador', 'Editor', 'Consultor'],
-        'visitas-tecnicas' => ['Administrador', 'Editor', 'Consultor'],
-        'horas-pedagogicas' => ['Administrador', 'Editor', 'Consultor'],
-        'acoes-extensivas' => ['Administrador', 'Editor', 'Consultor'],
-        'eventos' => ['Administrador', 'Editor', 'Consultor'],
-        'jornada-pedagogica' => ['Administrador', 'Editor', 'Consultor'],
-        'ferramentas' => ['Administrador', 'Editor', 'Consultor'],
-        'sistemas-apoio' => ['Administrador', 'Editor', 'Consultor'],
-        'unidades' => ['Administrador', 'Editor', 'Consultor'],
-        'estruturas-institucionais' => ['Administrador', 'Editor', 'Consultor'],
-        'cped' => ['Administrador', 'Editor', 'Consultor'],
+        'painel' => ['Administrador', 'Editor', 'Consultor', 'Instrutor', 'Núcleo Pedagógico', 'Coordenação CPED', 'Direção Pedagógica', 'NULOG'],
+        'solicitacoes' => ['Administrador', 'Editor', 'Consultor', 'Instrutor', 'Núcleo Pedagógico', 'Coordenação CPED', 'Direção Pedagógica', 'NULOG'],
+        'fila' => ['Núcleo Pedagógico', 'Coordenação CPED', 'Direção Pedagógica', 'NULOG'],
+        'relatorios' => ['Administrador', 'Editor', 'Consultor', 'Núcleo Pedagógico', 'Coordenação CPED', 'Direção Pedagógica'],
+        'relatorios_visita' => ['Editor', 'Consultor', 'Instrutor', 'Núcleo Pedagógico', 'Coordenação CPED', 'Direção Pedagógica'],
         'usuarios' => ['Administrador'],
+        'cadastros' => ['Administrador'],
+        'auditoria' => ['Administrador'],
     ],
 ];

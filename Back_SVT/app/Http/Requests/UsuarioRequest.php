@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Models\Usuario;
-use App\Models\UnidadeOferta;
 use App\Rules\CpfValido;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Http\FormRequest;
@@ -79,7 +78,7 @@ class UsuarioRequest extends FormRequest
                 Rule::in(config('permissoes.perfis')),
             ],
             'status' => ['required', 'boolean'],
-            'unidade' => ['required', 'string', 'max:100', Rule::in(UnidadeOferta::nomesAtivos())],
+            'unidade' => ['required', 'string', 'max:100', Rule::in(config('svt.unidades'))],
             'area' => ['required', 'string', 'max:100'],
             'telefone' => ['required', 'string', 'max:20', 'regex:/^\d{10,11}$/'],
             'foto' => ['nullable', 'image', 'max:2048'],
@@ -102,7 +101,7 @@ class UsuarioRequest extends FormRequest
             'senha.required' => 'A senha é obrigatória no cadastro.',
             'senha.min' => 'A senha deve ter no mínimo 6 caracteres.',
             'perfil.required' => 'O perfil é obrigatório.',
-            'perfil.in' => 'Perfil inválido. Use Administrador, Editor ou Consultor.',
+            'perfil.in' => 'Selecione um perfil válido do fluxo de visitas.',
             'cpf.unique' => 'Este CPF já está cadastrado.',
             'cpf.size' => 'Informe um CPF válido.',
             'telefone.regex' => 'Informe um telefone válido com DDD.',

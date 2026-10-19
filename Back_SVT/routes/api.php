@@ -1,36 +1,10 @@
 <?php
 
-use App\Http\Controllers\Api\AcaoExtensivaController;
+use App\Http\Controllers\Api\AuditoriaController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\CadastroController;
-use App\Http\Controllers\Api\CarometroController;
-use App\Http\Controllers\Api\CpedEquipeController;
-use App\Http\Controllers\Api\CursoController;
-use App\Http\Controllers\Api\CursoExecucaoController;
-use App\Http\Controllers\Api\CursoPorEixoController;
-use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\EventoController;
-use App\Http\Controllers\Api\EixoController;
-use App\Http\Controllers\Api\FerramentaController;
-use App\Http\Controllers\Api\FluxogramaController;
-use App\Http\Controllers\Api\HoraPedagogicaController;
-use App\Http\Controllers\Api\ImportacaoController;
-use App\Http\Controllers\Api\JornadaPedagogicaController;
-use App\Http\Controllers\Api\CicloController;
-use App\Http\Controllers\Api\SistemaApoioController;
-use App\Http\Controllers\Api\KanbanController;
-use App\Http\Controllers\Api\NotificacaoController;
-use App\Http\Controllers\Api\OrganogramaController;
-use App\Http\Controllers\Api\PcaController;
-use App\Http\Controllers\Api\PlanoDeMetaController;
-use App\Http\Controllers\Api\RelatorioController;
-use App\Http\Controllers\Api\ResolucaoController;
-use App\Http\Controllers\Api\RevisaoDadosController;
-use App\Http\Controllers\Api\TermoReferenciaController;
-use App\Http\Controllers\Api\UnidadeOfertaController;
-use App\Http\Controllers\Api\RegiaoAdministrativaController;
+use App\Http\Controllers\Api\CadastroInstitucionalController;
+use App\Http\Controllers\Api\SvtController;
 use App\Http\Controllers\Api\UsuarioController;
-use App\Http\Controllers\Api\VisitaTecnicaController;
 use App\Models\Usuario;
 use Illuminate\Support\Facades\Route;
 
@@ -41,96 +15,38 @@ Route::middleware(['auth:sanctum', 'usuario.ativo'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'me']);
 
-    // Somente Administrador gerencia usuários (cadastra e define login/senha).
     Route::middleware('perfil:'.Usuario::PERFIL_ADMINISTRADOR)
         ->apiResource('usuarios', UsuarioController::class);
 
-    // Auditoria (tabela cadastros) — somente leitura para Administrador.
-    Route::get('cadastros', [CadastroController::class, 'index']);
-    Route::get('cadastros/{cadastro}', [CadastroController::class, 'show']);
-    Route::post('ciclos/gerar-proximo', [CicloController::class, 'gerarProximo']);
-    Route::post('ciclos/{ciclo}/marcar-atual', [CicloController::class, 'marcarAtual']);
-    Route::apiResource('ciclos', CicloController::class);
-    Route::post('portfolio-ciclos/gerar-proximo', [CicloController::class, 'gerarProximo']);
-    Route::post('portfolio-ciclos/{ciclo}/marcar-atual', [CicloController::class, 'marcarAtual']);
-    Route::apiResource('portfolio-ciclos', CicloController::class)->parameters(['portfolio-ciclos' => 'ciclo']);
-    Route::apiResource('cursos', CursoController::class);
-    Route::apiResource('plano-de-metas', PlanoDeMetaController::class);
-    Route::apiResource('resolucoes', ResolucaoController::class)
-        ->parameters(['resolucoes' => 'resolucao']);
-    Route::apiResource('termos-referencia', TermoReferenciaController::class)
-        ->parameters(['termos-referencia' => 'termoReferencia']);
-    Route::apiResource('pcas', PcaController::class);
-    Route::get('eixos/resumo', [EixoController::class, 'resumo']);
-    Route::get('eixos/pendentes', [EixoController::class, 'pendentes']);
-    Route::get('eixos/{eixo}/detalhes', [EixoController::class, 'detalhes']);
-    Route::get('eixos/{eixo}/cursos', [EixoController::class, 'cursos']);
-    Route::get('revisao-dados', [RevisaoDadosController::class, 'index']);
-    Route::post('revisao-dados/cursos/{curso}/classificar', [RevisaoDadosController::class, 'classificar']);
-    Route::post('revisao-dados/execucoes/{curso_execucao}/vincular', [RevisaoDadosController::class, 'vincular']);
-    Route::post('curso-execucoes/{curso_execucao}/vincular', [CursoExecucaoController::class, 'vincular']);
-    Route::apiResource('curso-execucoes', CursoExecucaoController::class)
-        ->parameters(['curso-execucoes' => 'curso_execucao']);
-    Route::apiResource('curso-por-eixos', CursoPorEixoController::class);
-    Route::apiResource('horas-pedagogicas', HoraPedagogicaController::class)
-        ->parameters(['horas-pedagogicas' => 'horaPedagogica']);
-    Route::apiResource('visitas-tecnicas', VisitaTecnicaController::class)
-        ->parameters(['visitas-tecnicas' => 'visitaTecnica']);
-    Route::apiResource('acoes-extensivas', AcaoExtensivaController::class)
-        ->parameters(['acoes-extensivas' => 'acaoExtensiva']);
-    Route::apiResource('eventos', EventoController::class);
-    Route::get('jornadas-pedagogicas/{jornadaPedagogica}/pdf', [JornadaPedagogicaController::class, 'pdf']);
-    Route::apiResource('jornadas-pedagogicas', JornadaPedagogicaController::class)
-        ->parameters(['jornadas-pedagogicas' => 'jornadaPedagogica']);
-    Route::get('sistemas-apoio', [SistemaApoioController::class, 'index']);
-    Route::get('unidades-oferta/nomes', [UnidadeOfertaController::class, 'nomes']);
-    Route::get('unidades-oferta/opcoes', [UnidadeOfertaController::class, 'opcoes']);
-    Route::apiResource('regioes-administrativas', RegiaoAdministrativaController::class)
-        ->parameters(['regioes-administrativas' => 'regiaoAdministrativa'])
-        ->except(['destroy']);
-    Route::apiResource('unidades-oferta', UnidadeOfertaController::class)
-        ->parameters(['unidades-oferta' => 'unidadeOferta'])
-        ->except(['destroy']);
-    Route::apiResource('cped-equipes', CpedEquipeController::class)
-        ->parameters(['cped-equipes' => 'cpedEquipe']);
-    Route::get('ferramentas', [FerramentaController::class, 'index']);
-    Route::get('organograma', [OrganogramaController::class, 'index']);
-    Route::get('carometro', [CarometroController::class, 'index']);
+    Route::prefix('svt')->group(function () {
+        Route::get('catalogo', [SvtController::class, 'catalogo']);
+        Route::get('cota', [SvtController::class, 'cota']);
+        Route::get('turmas', [SvtController::class, 'turmas']);
+        Route::get('turmas/{turma}/historico', [SvtController::class, 'historicoTurma'])
+            ->middleware('perfil:'.Usuario::PERFIL_ADMINISTRADOR);
+        Route::get('painel', [SvtController::class, 'painel']);
+        Route::get('relatorios', [SvtController::class, 'relatorios']);
+        Route::get('solicitacoes', [SvtController::class, 'index']);
+        Route::post('solicitacoes', [SvtController::class, 'store']);
+        Route::get('solicitacoes/{visitaTecnica}', [SvtController::class, 'show']);
+        Route::put('solicitacoes/{visitaTecnica}', [SvtController::class, 'update']);
+        Route::post('solicitacoes/{visitaTecnica}/cancelar', [SvtController::class, 'cancelar']);
+        Route::post('solicitacoes/{visitaTecnica}/decisao', [SvtController::class, 'decidir']);
+        Route::post('solicitacoes/{visitaTecnica}/transporte', [SvtController::class, 'transporte']);
+        Route::post('solicitacoes/{visitaTecnica}/realizar', [SvtController::class, 'realizar']);
+        Route::post('solicitacoes/{visitaTecnica}/relatorio', [SvtController::class, 'relatorio']);
+        Route::get('solicitacoes/{visitaTecnica}/relatorio/arquivo', [SvtController::class, 'baixarRelatorio']);
 
-    Route::get('dashboard', [DashboardController::class, 'resumo']);
-    Route::get('notificacoes', [NotificacaoController::class, 'index']);
-    Route::post('notificacoes/marcar-lidas', [NotificacaoController::class, 'marcarLidas']);
+        Route::middleware('perfil:'.Usuario::PERFIL_ADMINISTRADOR)->group(function () {
+            Route::get('auditoria', [AuditoriaController::class, 'index']);
+            Route::get('auditoria/{evento}', [AuditoriaController::class, 'show']);
+        });
 
-    Route::get('relatorios', [RelatorioController::class, 'index']);
-    Route::get('relatorios/{tipo}/preview', [RelatorioController::class, 'preview']);
-    Route::get('relatorios/{tipo}/pdf', [RelatorioController::class, 'pdf']);
-
-    Route::get('importacoes', [ImportacaoController::class, 'catalogo']);
-    Route::post('importacoes/{modulo}/preview', [ImportacaoController::class, 'preview']);
-    Route::post('importacoes/{modulo}/commit', [ImportacaoController::class, 'commit']);
-
-    Route::prefix('kanban')->group(function () {
-        Route::get('quadros', [KanbanController::class, 'indexQuadros']);
-        Route::post('quadros', [KanbanController::class, 'storeQuadro']);
-        Route::get('quadros/{kanbanQuadro}', [KanbanController::class, 'showQuadro']);
-        Route::put('quadros/{kanbanQuadro}', [KanbanController::class, 'updateQuadro']);
-        Route::delete('quadros/{kanbanQuadro}', [KanbanController::class, 'destroyQuadro']);
-
-        Route::post('quadros/{kanbanQuadro}/colunas', [KanbanController::class, 'storeColuna']);
-        Route::post('quadros/{kanbanQuadro}/cartoes', [KanbanController::class, 'store']);
-
-        Route::put('colunas/{kanbanColuna}', [KanbanController::class, 'updateColuna']);
-        Route::delete('colunas/{kanbanColuna}', [KanbanController::class, 'destroyColuna']);
-        Route::put('cartoes/{kanbanCartao}', [KanbanController::class, 'update']);
-        Route::delete('cartoes/{kanbanCartao}', [KanbanController::class, 'destroy']);
-        Route::put('cartoes/{kanbanCartao}/mover', [KanbanController::class, 'mover']);
-    });
-
-    Route::prefix('fluxogramas')->group(function () {
-        Route::get('/', [FluxogramaController::class, 'index']);
-        Route::post('/', [FluxogramaController::class, 'store']);
-        Route::get('{fluxograma}', [FluxogramaController::class, 'show']);
-        Route::put('{fluxograma}', [FluxogramaController::class, 'update']);
-        Route::delete('{fluxograma}', [FluxogramaController::class, 'destroy']);
+        Route::middleware('perfil:'.Usuario::PERFIL_ADMINISTRADOR)->prefix('cadastros')->group(function () {
+            Route::get('{recurso}', [CadastroInstitucionalController::class, 'index']);
+            Route::post('{recurso}', [CadastroInstitucionalController::class, 'store']);
+            Route::put('{recurso}/{id}', [CadastroInstitucionalController::class, 'update']);
+            Route::post('{recurso}/{id}/desativar', [CadastroInstitucionalController::class, 'desativar']);
+        });
     });
 });

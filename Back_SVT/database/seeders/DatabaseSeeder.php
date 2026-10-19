@@ -20,15 +20,8 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->call([
-            TruncarDadosOperacionaisSeeder::class,
-            EixoSeeder::class,
-            CicloSeeder::class,
-            UnidadeOfertaSeeder::class,
             UsuarioSeeder::class,
-            CpedEquipeSeeder::class,
-            MassaDadosSeeder::class,
-            KanbanSeeder::class,
-            FluxogramaSeeder::class,
+            SvtSeeder::class,
         ]);
     }
 }

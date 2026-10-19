@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('email', 100)->unique()->after('nome');
             $table->string('senha')->after('email');
             $table->string('cpf', 14)->nullable()->unique()->after('senha');
-            $table->enum('perfil', ['Administrador', 'Editor', 'Consultor'])->after('cpf');
+            $table->string('perfil', 40)->after('cpf');
             $table->boolean('status')->default(true)->after('perfil');
             $table->string('unidade', 100)->nullable()->after('status');
             $table->string('area', 100)->nullable()->after('unidade');
