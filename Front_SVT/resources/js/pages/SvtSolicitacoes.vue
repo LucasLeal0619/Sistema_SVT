@@ -167,10 +167,11 @@
       <p v-else class="svt-muted">Transporte ainda não registrado.</p>
 
       <h3>Relatório</h3>
+      <p v-if="detalhe.visita.relatorio_texto" class="svt-relato-texto">{{ detalhe.visita.relatorio_texto }}</p>
       <p v-if="detalhe.visita.tem_relatorio">
         <button class="svt-btn secondary" type="button" @click="baixarRelatorio(detalhe.visita)">Abrir relatório</button>
       </p>
-      <p v-else class="svt-muted">Relatório ainda não entregue.</p>
+      <p v-else-if="!detalhe.visita.relatorio_texto" class="svt-muted">Relatório ainda não entregue.</p>
 
       <form v-if="detalhe.visita.pode_decidir" class="svt-list" @submit.prevent="decidir(true)">
         <label class="svt-field">Se for recusar, escreva o motivo

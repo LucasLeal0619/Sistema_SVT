@@ -33,6 +33,20 @@
       </select>
     </PainelFiltros>
 
+    <article v-if="leitura" class="svt-bloco svt-relato">
+      <header class="svt-historico-topo">
+        <div>
+          <h2 class="svt-section-title">Relatório de {{ leitura.turma }}</h2>
+          <p class="svt-muted">{{ leitura.local_visita || 'Sem local' }} · {{ formatarData(leitura.data_visita_prevista) }}</p>
+        </div>
+        <button type="button" class="svt-btn secondary" @click="leitura = null">Fechar</button>
+      </header>
+      <p class="svt-relato-texto">{{ leitura.relatorio_texto }}</p>
+      <p v-if="leitura.tem_relatorio">
+        <button type="button" class="svt-btn secondary" @click="baixarRelatorio(leitura)">Abrir arquivo</button>
+      </p>
+    </article>
+
     <p v-if="carregando" class="svt-muted">Carregando documentos...</p>
     <p v-else-if="visitas.length === 0" class="svt-muted">Nenhum relatório neste recorte.</p>
     <ListaResponsiva v-else :itens="visitas" :colunas="colunasLista">
@@ -43,9 +57,12 @@
       <template #celula-data="{ item }">{{ formatarData(item.data_visita_prevista) }}</template>
       <template #celula-situacao="{ item }">{{ item.etapa === 'relatorio' ? 'Entregue' : 'Pendente' }}</template>
       <template #acao="{ item }">
-        <button v-if="item.tem_relatorio" type="button" class="svt-btn secondary" @click="baixarRelatorio(item)">Abrir</button>
-        <router-link v-else-if="podeEnviar" class="svt-btn secondary" :to="{ name: 'solicitacoes', query: { id: item.id } }">Enviar na visita</router-link>
-        <span v-else>Pendente</span>
+        <div class="svt-acoes">
+          <button v-if="item.tem_relatorio" type="button" class="svt-btn secondary" @click="baixarRelatorio(item)">Visualizar</button>
+          <button v-else-if="item.relatorio_texto" type="button" class="svt-btn secondary" @click="leitura = item">Visualizar</button>
+          <router-link v-else-if="item.etapa !== 'relatorio' && podeEnviar" class="svt-btn secondary" :to="{ name: 'solicitacoes', query: { id: item.id } }">Enviar na visita</router-link>
+          <span v-else-if="item.etapa !== 'relatorio'">Pendente</span>
+        </div>
       </template>
     </ListaResponsiva>
     <div v-if="meta.total > meta.per_page" class="svt-pager">
@@ -81,6 +98,7 @@ export default {
       unidades: [],
       erro: '',
       carregando: false,
+      leitura: null,
     };
   },
   computed: {
@@ -126,6 +144,7 @@ export default {
     },
     async carregar() {
       this.erro = '';
+      this.leitura = null;
       this.carregando = true;
       try {
         const { data } = await window.axios.get('/api/svt/solicitacoes', {

@@ -1,4 +1,9 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
+
+const relatorioExemplo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'fixtures/relatorio-exemplo.pdf');
 
 const senhaPerfil = 'svt2026';
 const larguras = [320, 360, 375, 390, 430, 768, 1024, 1366, 1440];
@@ -204,19 +209,27 @@ test.describe.serial('ciclo da visita', () => {
         await expect(page.getByText('Pedido encaminhado.')).toBeVisible();
         await sair(page);
 
-        const gastro = await request.post('/api/login', {
-            data: { email: 'cped.gastronomia@df.senac.br', senha: senhaPerfil },
-        });
-        const tokenGastro = (await gastro.json()).token;
-        const consulta = await request.get('/api/svt/solicitacoes/' + id, {
-            headers: { Authorization: 'Bearer ' + tokenGastro, Accept: 'application/json' },
-        });
-        const decisao = await request.post('/api/svt/solicitacoes/' + id + '/decisao', {
-            headers: { Authorization: 'Bearer ' + tokenGastro, Accept: 'application/json' },
-            data: { aprovar: true },
-        });
-        expect(consulta.status()).toBe(404);
-        expect(decisao.status()).toBe(422);
+        const foraDoEixo = [
+            'cped.gastronomia@df.senac.br',
+            'cped.ambiente@df.senac.br',
+            'cped.gestao@df.senac.br',
+            'cped.beleza@df.senac.br',
+        ];
+        for (const email of foraDoEixo) {
+            const outro = await request.post('/api/login', {
+                data: { email, senha: senhaPerfil },
+            });
+            const tokenOutro = (await outro.json()).token;
+            const consulta = await request.get('/api/svt/solicitacoes/' + id, {
+                headers: { Authorization: 'Bearer ' + tokenOutro, Accept: 'application/json' },
+            });
+            const decisao = await request.post('/api/svt/solicitacoes/' + id + '/decisao', {
+                headers: { Authorization: 'Bearer ' + tokenOutro, Accept: 'application/json' },
+                data: { aprovar: true },
+            });
+            expect(consulta.status(), email).toBe(404);
+            expect(decisao.status(), email).toBe(422);
+        }
 
         await entrar(page, 'cped.tecnologia@df.senac.br', senhaPerfil);
         await page.goto('/app/solicitacoes?id=' + id);
@@ -250,11 +263,7 @@ test.describe.serial('ciclo da visita', () => {
         await page.getByRole('button', { name: 'Marcar visita como realizada' }).click();
         await expect(page.getByText('Visita marcada como realizada.')).toBeVisible();
         await page.getByLabel('O que foi realizado e o que a turma aprendeu').fill('A turma observou o laboratorio.');
-        await page.getByLabel('Relatório da visita, em Word ou PDF').setInputFiles({
-            name: 'relatorio.pdf',
-            mimeType: 'application/pdf',
-            buffer: Buffer.from('%PDF-1.4\n%%EOF\n'),
-        });
+        await page.getByLabel('Relatório da visita, em Word ou PDF').setInputFiles(relatorioExemplo);
         await page.getByRole('button', { name: 'Anexar relatório' }).click();
         await expect(page.getByText('Relatório anexado.')).toBeVisible();
 
@@ -262,7 +271,7 @@ test.describe.serial('ciclo da visita', () => {
         const arquivo = await request.get('/api/svt/solicitacoes/' + id + '/relatorio/arquivo', { headers: autorizacao });
         expect(arquivo.status()).toBe(200);
         expect(arquivo.headers()['content-type']).toContain('application/pdf');
-        expect((await arquivo.body()).subarray(0, 4).toString()).toBe('%PDF');
+        expect(Buffer.from(await arquivo.body()).equals(readFileSync(relatorioExemplo))).toBe(true);
         const anonimo = await request.get('/api/svt/solicitacoes/' + id + '/relatorio/arquivo');
         expect(anonimo.status()).toBe(401);
 

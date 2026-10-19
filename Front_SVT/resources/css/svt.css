@@ -1477,6 +1477,11 @@ a.svt-stat {
   margin: 1rem 0 1.25rem;
 }
 
+.svt-relato-texto {
+  margin: 0.75rem 0 0;
+  white-space: pre-wrap;
+}
+
 .svt-linhas {
   margin: 0;
   padding: 0;

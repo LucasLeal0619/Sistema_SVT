@@ -46,7 +46,7 @@
               {{ item.etapa_label }}
               <template v-if="item.motivo_decisao"> · {{ item.motivo_decisao }}</template>
             </td>
-            <td>{{ item.tem_relatorio ? 'Entregue' : 'Pendente' }}</td>
+            <td>{{ item.etapa === 'relatorio' || item.tem_relatorio ? 'Entregue' : 'Pendente' }}</td>
           </tr>
         </tbody>
       </table>
