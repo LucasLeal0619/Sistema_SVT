@@ -1,8 +1,7 @@
-import { atualizarUsuarioSessao, getUsuario, podeGerenciarUsuarios } from './auth';
+import ListaResponsiva from '../components/ui/ListaResponsiva.vue';
+import PainelFiltros from '../components/ui/PainelFiltros.vue';
+import { AREAS_CPED, PAPEL, atualizarUsuarioSessao, getUsuario, podeGerenciarUsuarios } from './auth';
 import { hidratarUnidadesSelect } from './unidadesApi';
-import PageTableCard from '../components/crud/PageTableCard.vue';
-import Pagination from '../components/crud/Pagination.vue';
-import CrudPageHeader from '../components/crud/CrudPageHeader.vue';
 import { mixinHistoricoFormulario } from './formularioHistorico';
 import {
   combinarValidacoes,
@@ -19,13 +18,23 @@ import {
 
 export default {
   name: 'Usuarios',
+  components: { ListaResponsiva, PainelFiltros },
   mixins: [mixinHistoricoFormulario],
-  components: { PageTableCard, CrudPageHeader, Pagination },
   data() {
     return {
       modo: 'lista',
+      alternandoId: null,
       usuarios: [],
       meta: { total: 0, per_page: 10, current_page: 1, last_page: 1, from: 0, to: 0 },
+      areasCped: AREAS_CPED,
+      papeis: [
+        { nome: 'Instrutor', resumo: 'Abre o pedido da turma.' },
+        { nome: 'Núcleo Pedagógico', resumo: 'Só vê pedidos da unidade cadastrada.' },
+        { nome: 'Coordenação CPED', resumo: 'A área tem que ser a coordenação do eixo.' },
+        { nome: 'Direção Pedagógica', resumo: 'Última análise antes do transporte.' },
+        { nome: 'NULOG', resumo: 'Registra veículo, placa, data e motorista.' },
+        { nome: 'Administrador', resumo: 'Não move visita. Só cria estes acessos.' },
+      ],
       carregando: false,
       salvando: false,
       editandoId: null,
@@ -36,6 +45,7 @@ export default {
       filtros: {
         busca: '',
         perfil: '',
+        unidade: '',
         status: '',
       },
       form: this.formVazio(),
@@ -44,11 +54,30 @@ export default {
     };
   },
   computed: {
+    colunasLista() {
+      return [
+        { chave: 'nome', rotulo: 'Nome', papel: 'titulo' },
+        { chave: 'status', rotulo: 'Status', papel: 'status' },
+        { chave: 'email', rotulo: 'E-mail', papel: 'destaque' },
+        { chave: 'perfil', rotulo: 'Função', papel: 'destaque' },
+        { chave: 'unidade', rotulo: 'Unidade', papel: 'destaque' },
+        { chave: 'area', rotulo: 'Área', papel: 'destaque' },
+      ];
+    },
     podeEditar() {
       return podeGerenciarUsuarios();
     },
     temFiltro() {
       return Object.values(this.filtros).some((valor) => valor !== '' && valor != null);
+    },
+    perfilFora() {
+      return Boolean(this.form.perfil) && !this.papeis.some((papel) => papel.nome === this.form.perfil);
+    },
+    papelEscolhido() {
+      return PAPEL[this.form.perfil] || null;
+    },
+    ehCped() {
+      return this.form.perfil === 'Coordenação CPED';
     },
   },
   mounted() {
@@ -60,7 +89,7 @@ export default {
   },
   methods: {
     limparFiltros() {
-      this.filtros = { busca: '', perfil: '', status: '' };
+      this.filtros = { busca: '', perfil: '', unidade: '', status: '' };
       this.meta.current_page = 1;
       this.carregarUsuarios();
     },
@@ -131,6 +160,10 @@ export default {
             params.perfil = this.filtros.perfil;
           }
 
+          if (this.filtros.unidade) {
+            params.unidade = this.filtros.unidade;
+          }
+
           if (this.filtros.status !== '') {
             params.status = this.filtros.status;
           }
@@ -179,6 +212,17 @@ export default {
       const usuario = this.usuarioDetalhe;
       this.fecharDetalhes();
       this.abrirEdicao(usuario);
+    },
+
+    ativosDo(perfil) {
+      return this.usuarios.filter((usuario) => usuario.perfil === perfil && usuario.status).length;
+    },
+
+    escolherPapel(nome) {
+      this.form.perfil = nome;
+      if (nome === 'Coordenação CPED' && !this.areasCped.includes(this.form.area)) {
+        this.form.area = '';
+      }
     },
 
     abrirNovo() {
@@ -316,17 +360,17 @@ export default {
 
     validarFormulario() {
       return combinarValidacoes(
-        textoObrigatorio(this.form.telefone, 'Informe o telefone.'),
-        textoObrigatorio(this.form.area, 'Informe a área de atuação.'),
-        textoObrigatorio(this.form.unidade, 'Informe a estrutura institucional.'),
-        textoObrigatorio(this.form.status, 'Informe se o usuário está ativo.'),
+        textoObrigatorio(this.form.perfil, 'O perfil é obrigatório.'),
         textoObrigatorio(this.form.nome, 'O nome é obrigatório.'),
         tamanhoMaximo(this.form.nome, 100, 'O nome deve ter no máximo 100 caracteres.'),
         validarEmail(this.form.email, { obrigatorio: true }),
         tamanhoMaximo(this.form.email, 100, 'O e-mail deve ter no máximo 100 caracteres.'),
-        textoObrigatorio(this.form.perfil, 'O perfil é obrigatório.'),
+        textoObrigatorio(this.form.telefone, 'Informe o telefone.'),
         validarCpf(this.form.cpf, { obrigatorio: true }),
+        textoObrigatorio(this.form.unidade, 'Informe a estrutura institucional.'),
+        textoObrigatorio(this.form.area, 'Informe a área de atuação.'),
         tamanhoMaximo(this.form.area, 100, 'A área deve ter no máximo 100 caracteres.'),
+        textoObrigatorio(this.form.status, 'Informe se o usuário está ativo.'),
         this.modo === 'novo'
           ? validarSenha(this.form.senha, { obrigatorio: true })
           : validarSenha(this.form.senha),
@@ -412,6 +456,47 @@ export default {
       }
     },
 
+    async inativarUsuario(usuario) {
+      if (!this.podeEditar) {
+        this.mensagemErro = 'Você não tem permissão para inativar usuários.';
+        return;
+      }
+
+      const ativar = !usuario.status;
+      const confirmar = window.confirm(
+        ativar
+          ? `Ativar o acesso de "${usuario.nome}"?`
+          : `Inativar o acesso de "${usuario.nome}"? A pessoa deixa de entrar até alguém ativar de novo.`
+      );
+
+      if (!confirmar) {
+        return;
+      }
+
+      this.alternandoId = usuario.id;
+      this.mensagemErro = '';
+      this.mensagemSucesso = '';
+
+      try {
+        await window.axios.put(`/api/usuarios/${usuario.id}`, {
+          nome: usuario.nome,
+          email: usuario.email,
+          cpf: somenteNumeros(usuario.cpf || ''),
+          perfil: usuario.perfil,
+          status: ativar,
+          unidade: usuario.unidade,
+          area: usuario.area,
+          telefone: somenteNumeros(usuario.telefone || ''),
+        });
+        this.mensagemSucesso = ativar ? 'Acesso ativado.' : 'Acesso inativado.';
+        await this.carregarUsuarios();
+      } catch (error) {
+        this.mensagemErro = this.extrairErro(error, ativar ? 'Não foi possível ativar o usuário.' : 'Não foi possível inativar o usuário.');
+      } finally {
+        this.alternandoId = null;
+      }
+    },
+
     async excluirUsuario(usuario) {
       if (!this.podeEditar) {
         this.mensagemErro = 'Você não tem permissão para excluir usuários.';
@@ -419,7 +504,7 @@ export default {
       }
 
       const confirmar = window.confirm(
-        `Excluir o usuário "${usuario.nome}"? Esta ação não pode ser desfeita.`
+        `Excluir o acesso de "${usuario.nome}"? Esta ação não pode ser desfeita.`
       );
 
       if (!confirmar) {
@@ -432,6 +517,7 @@ export default {
       try {
         const { data } = await window.axios.delete(`/api/usuarios/${usuario.id}`);
         this.mensagemSucesso = data.message;
+        this.voltarLista();
         await this.carregarUsuarios();
       } catch (error) {
         this.mensagemErro = this.extrairErro(error, 'Não foi possível excluir o usuário.');

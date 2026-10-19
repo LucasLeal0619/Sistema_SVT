@@ -1,161 +1,253 @@
 <template>
-  <div class="auditoria-page crud-page">
-    <CrudPageHeader
-      title="Auditoria"
-      subtitle="Histórico de cadastros, edições, exclusões e importações"
-      info="Registro automático de quem alterou cada módulo do SIPED. Disponível apenas para administradores."
-      :show-clear-filters="temFiltro"
-      filters-aria-label="Filtros de auditoria"
-      @limpar-filtros="limparFiltros"
-    >
-      <template #filters>
-        <section class="filtros-bar" aria-label="Filtros de auditoria">
-          <div class="filtro-busca">
-            <input
-              v-model="filtros.busca"
-              type="search"
-              placeholder="Buscar no resumo, módulo ou ação..."
-              aria-label="Buscar eventos de auditoria"
-              @input="carregar(1)"
-            />
-          </div>
-          <SearchableSelect
-            v-model="filtros.modulo"
-            :options="meta.modulos"
-            empty-option="Todos os módulos"
-            aria-label="Filtrar por módulo"
-            @change="carregar(1)"
-          />
-          <SearchableSelect
-            v-model="filtros.acao"
-            :options="meta.acoes.map((acao) => ({ value: acao, label: labelAcao(acao) }))"
-            empty-option="Todas as ações"
-            aria-label="Filtrar por ação"
-            @change="carregar(1)"
-          />
-          <input
-            v-model="filtros.data_inicio"
-            type="date"
-            title="Data início"
-            aria-label="Data início"
-            @change="carregar(1)"
-          />
-        </section>
+  <section class="svt-page svt-page--wide">
+    <header>
+      <h1>Auditoria</h1>
+      <p class="svt-lead">
+        Registro das operações do SVT. A consulta é somente leitura e o histórico não é alterado por esta tela.
+      </p>
+    </header>
+
+    <p v-if="erro" class="svt-alert" role="alert">{{ erro }}</p>
+    <p v-if="carregando" class="svt-muted">Carregando a auditoria...</p>
+
+    <div class="svt-audit-stats" aria-label="Indicadores do recorte">
+      <article class="svt-stat">
+        <span>Eventos</span>
+        <strong>{{ indicadores.total }}</strong>
+      </article>
+      <article class="svt-stat">
+        <span>Sucesso</span>
+        <strong>{{ indicadores.sucesso }}</strong>
+      </article>
+      <article class="svt-stat">
+        <span>Falha</span>
+        <strong>{{ indicadores.falha }}</strong>
+      </article>
+      <article class="svt-stat">
+        <span>Acesso negado</span>
+        <strong>{{ indicadores.negado }}</strong>
+      </article>
+    </div>
+
+    <form @submit.prevent="aplicar">
+      <PainelFiltros>
+      <template #busca>
+        <input v-model="filtros.busca" type="search" aria-label="Busca por responsável, ação ou identificador" placeholder="Responsável, ação ou identificador" />
       </template>
-    </CrudPageHeader>
+      <template #comandos>
+        <button class="svt-btn" type="submit">Filtrar</button>
+        <button class="svt-btn secondary" type="button" @click="limpar">Limpar</button>
+      </template>
+      <input v-model="filtros.de" type="date" aria-label="Data inicial" />
+      <input v-model="filtros.ate" type="date" aria-label="Data final" />
+      <select v-model="filtros.perfil" aria-label="Perfil">
+        <option value="">Todos os perfis</option>
+        <option v-for="perfil in perfis" :key="perfil" :value="perfil">{{ perfil }}</option>
+      </select>
+      <select v-model="filtros.unidade" aria-label="Unidade">
+        <option value="">Todas as unidades</option>
+        <option v-for="unidade in unidades" :key="unidade.id" :value="unidade.nome">{{ unidade.nome }}</option>
+      </select>
+      <select v-model="filtros.eixo" aria-label="Eixo">
+        <option value="">Todos os eixos</option>
+        <option v-for="eixo in eixos" :key="eixo.id" :value="eixo.nome">{{ eixo.nome }}</option>
+      </select>
+      <select v-model="filtros.categoria" aria-label="Módulo">
+        <option value="">Todos os módulos</option>
+        <option v-for="item in categorias" :key="item.valor" :value="item.valor">{{ item.rotulo }}</option>
+      </select>
+      <input v-model="filtros.acao" type="search" aria-label="Tipo de evento" placeholder="Tipo de evento" />
+      <select v-model="filtros.resultado" aria-label="Resultado">
+        <option value="">Qualquer resultado</option>
+        <option value="sucesso">Sucesso</option>
+        <option value="falha">Falha</option>
+        <option value="negado">Acesso negado</option>
+      </select>
+      </PainelFiltros>
+    </form>
 
-    <div v-if="mensagemErro" class="alert alert-error" role="alert">{{ mensagemErro }}</div>
+    <ListaResponsiva v-if="!carregando && eventos.length" :itens="eventos" :colunas="colunasLista">
+      <template #celula-quando="{ item }">{{ quando(item.ocorrido_em) }}</template>
+      <template #celula-usuario_nome="{ item }">{{ item.usuario_nome || 'Sem usuário identificado' }}</template>
+      <template #celula-categoria="{ item }">{{ rotuloCategoria(item.categoria) }}</template>
+      <template #celula-registro="{ item }">{{ item.entidade_tipo || '—' }} {{ item.entidade_id || '' }}</template>
+      <template #celula-resultado="{ item }">{{ rotuloResultado(item.resultado) }}</template>
+      <template #celula-unidade="{ item }">{{ item.unidade || 'Sem unidade' }}</template>
+      <template #celula-eixo="{ item }">{{ item.eixo || 'Sem eixo' }}</template>
+      <template #acao="{ item }">
+        <button class="svt-btn secondary" type="button" @click="abrir(item)">Detalhes</button>
+      </template>
+    </ListaResponsiva>
 
-    <PageTableCard :total="meta.total" aria-label="Tabela de auditoria">
+    <p v-if="!carregando && !erro && !eventos.length" class="svt-muted">Nenhum evento neste recorte.</p>
 
-      <div v-if="carregando" class="tabela-loading">Carregando...</div>
-
-      <div v-else class="tabela-wrap">
-        <table class="auditoria-table">
-          <thead>
-            <tr>
-              <th>Quando</th>
-              <th>Usuário</th>
-              <th>Ação</th>
-              <th>Módulo</th>
-              <th>Resumo</th>
-              <th class="text-center">Detalhes</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="registros.length === 0">
-              <td colspan="6" class="tabela-vazia">
-                Nenhum evento de auditoria encontrado para os filtros selecionados.
-              </td>
-            </tr>
-            <tr v-for="item in registros" :key="item.id">
-              <td>{{ formatarData(item.created_at) }}</td>
-              <td>
-                <div class="user-cell">
-                  <div>
-                    <p class="user-nome">{{ item.usuario?.nome ?? 'Sistema' }}</p>
-                    <p class="user-email">{{ item.usuario?.email ?? '—' }}</p>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="badge-acao" :class="`acao-${item.acao}`">{{ labelAcao(item.acao) }}</span>
-              </td>
-              <td>{{ item.modulo }}</td>
-              <td class="resumo-cell">{{ item.resumo }}</td>
-              <td class="text-center">
-                <button type="button" class="btn-link" aria-label="Ver detalhes do evento" @click="abrirDetalhe(item)">Ver</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <Pagination
-        :current-page="meta.current_page"
-        :total-pages="meta.last_page"
-        :total-records="meta.total"
-        :page-size="meta.per_page"
-        :disabled="carregando"
-        aria-label="Paginação da auditoria"
-        @change="irParaPagina"
-        @per-page-change="alterarRegistrosPorPagina"
-      />
-    </PageTableCard>
-
-    <div v-if="detalhe" class="modal-overlay" @click.self="fecharDetalhe">
-      <div class="modal-card">
-        <header class="modal-header">
-          <h2>Detalhe do evento</h2>
-          <button type="button" class="btn-fechar" aria-label="Fechar detalhe" @click="fecharDetalhe">×</button>
-        </header>
-        <div class="modal-body">
-          <dl class="detalhe-lista">
-            <div>
-              <dt>Quando</dt>
-              <dd>{{ formatarData(detalhe.created_at) }}</dd>
-            </div>
-            <div>
-              <dt>Usuário</dt>
-              <dd>{{ detalhe.usuario?.nome ?? 'Sistema' }} ({{ detalhe.usuario?.email ?? '—' }})</dd>
-            </div>
-            <div>
-              <dt>Ação</dt>
-              <dd>{{ labelAcao(detalhe.acao) }}</dd>
-            </div>
-            <div>
-              <dt>Módulo</dt>
-              <dd>{{ detalhe.modulo }}</dd>
-            </div>
-            <div>
-              <dt>Resumo</dt>
-              <dd>{{ detalhe.resumo }}</dd>
-            </div>
-            <div>
-              <dt>Registro</dt>
-              <dd>
-                <template v-if="detalhe.registro_id">
-                  {{ detalhe.registro_tipo }} #{{ detalhe.registro_id }}
-                </template>
-                <template v-else>—</template>
-              </dd>
-            </div>
-            <div>
-              <dt>IP</dt>
-              <dd>{{ detalhe.ip ?? '—' }}</dd>
-            </div>
-            <div v-if="detalhe.dados">
-              <dt>Dados</dt>
-              <dd>
-                <pre>{{ JSON.stringify(detalhe.dados, null, 2) }}</pre>
-              </dd>
-            </div>
-          </dl>
-        </div>
+    <div v-if="meta.total" class="svt-pager">
+      <span class="svt-muted">{{ meta.from || 0 }}–{{ meta.to || 0 }} de {{ meta.total || 0 }}</span>
+      <div class="svt-pager-nav">
+        <button class="svt-btn secondary" type="button" :disabled="meta.current_page <= 1 || carregando" @click="ir(meta.current_page - 1)">Anterior</button>
+        <button class="svt-btn secondary" type="button" :disabled="meta.current_page >= meta.last_page || carregando" @click="ir(meta.current_page + 1)">Próxima</button>
       </div>
     </div>
-  </div>
+
+    <article v-if="detalhe" class="svt-ficha svt-audit-detalhe">
+      <h2>Evento {{ detalhe.id }}</h2>
+      <button class="svt-btn secondary" type="button" @click="detalhe = null">Fechar</button>
+      <dl>
+        <div><dt>Quando</dt><dd>{{ quando(detalhe.ocorrido_em) }} ({{ detalhe.fuso }})</dd></div>
+        <div><dt>Responsável</dt><dd>{{ detalhe.usuario_nome || 'Sem usuário identificado' }} · {{ detalhe.usuario_email || 'sem e-mail' }} · id {{ detalhe.usuario_id || 'não vinculado' }}</dd></div>
+        <div><dt>Perfil no momento</dt><dd>{{ detalhe.perfil || '—' }}</dd></div>
+        <div><dt>Módulo e ação</dt><dd>{{ rotuloCategoria(detalhe.categoria) }} · {{ detalhe.acao }}</dd></div>
+        <div><dt>Registro</dt><dd>{{ detalhe.entidade_tipo || '—' }} {{ detalhe.entidade_id || '' }}</dd></div>
+        <div><dt>Unidade e eixo</dt><dd>{{ detalhe.unidade || 'Sem unidade' }} · {{ detalhe.eixo || 'Sem eixo' }}</dd></div>
+        <div><dt>Resultado</dt><dd>{{ rotuloResultado(detalhe.resultado) }}</dd></div>
+        <div><dt>Correlação</dt><dd>{{ detalhe.correlacao }}</dd></div>
+        <div><dt>Antes</dt><dd><pre>{{ texto(detalhe.anterior) }}</pre></dd></div>
+        <div><dt>Depois</dt><dd><pre>{{ texto(detalhe.novo) }}</pre></dd></div>
+      </dl>
+    </article>
+  </section>
 </template>
 
-<script src="../scripts/Auditoria.js"></script>
-<style scoped src="../../css/Auditoria.css"></style>
+<script>
+import ListaResponsiva from '../components/ui/ListaResponsiva.vue';
+import PainelFiltros from '../components/ui/PainelFiltros.vue';
+
+const VAZIO = () => ({
+  busca: '',
+  de: '',
+  ate: '',
+  perfil: '',
+  unidade: '',
+  eixo: '',
+  categoria: '',
+  acao: '',
+  resultado: '',
+});
+
+export default {
+  name: 'Auditoria',
+  components: { ListaResponsiva, PainelFiltros },
+  data() {
+    return {
+      filtros: VAZIO(),
+      eventos: [],
+      indicadores: { total: 0, sucesso: 0, falha: 0, negado: 0 },
+      meta: { current_page: 1, last_page: 1, from: 0, to: 0, total: 0 },
+      unidades: [],
+      eixos: [],
+      detalhe: null,
+      carregando: false,
+      erro: '',
+      perfis: [
+        'Administrador',
+        'Editor',
+        'Consultor',
+        'Instrutor',
+        'Núcleo Pedagógico',
+        'Coordenação CPED',
+        'Direção Pedagógica',
+        'NULOG',
+      ],
+      colunasLista: [
+        { chave: 'quando', rotulo: 'Quando', papel: 'titulo' },
+        { chave: 'resultado', rotulo: 'Resultado', papel: 'status' },
+        { chave: 'usuario_nome', rotulo: 'Responsável', papel: 'destaque' },
+        { chave: 'acao', rotulo: 'Ação', papel: 'destaque' },
+        { chave: 'perfil', rotulo: 'Perfil', papel: 'detalhe' },
+        { chave: 'categoria', rotulo: 'Módulo', papel: 'detalhe' },
+        { chave: 'registro', rotulo: 'Registro', papel: 'detalhe' },
+        { chave: 'unidade', rotulo: 'Unidade', papel: 'detalhe' },
+        { chave: 'eixo', rotulo: 'Eixo', papel: 'detalhe' },
+      ],
+      categorias: [
+        { valor: 'autenticacao', rotulo: 'Autenticação' },
+        { valor: 'usuarios', rotulo: 'Usuários' },
+        { valor: 'visitas', rotulo: 'Visitas' },
+        { valor: 'logistica', rotulo: 'NULOG' },
+        { valor: 'documentos', rotulo: 'Documentos' },
+        { valor: 'configuracoes', rotulo: 'Configurações' },
+        { valor: 'seguranca', rotulo: 'Segurança' },
+      ],
+    };
+  },
+  mounted() {
+    this.carregarApoio();
+    this.carregar(1);
+  },
+  methods: {
+    async carregarApoio() {
+      try {
+        const [unidades, eixos] = await Promise.all([
+          window.axios.get('/api/svt/cadastros/unidades'),
+          window.axios.get('/api/svt/cadastros/eixos'),
+        ]);
+        this.unidades = unidades.data.data || [];
+        this.eixos = eixos.data.data || [];
+      } catch {
+        this.unidades = [];
+        this.eixos = [];
+      }
+    },
+    async carregar(pagina) {
+      this.carregando = true;
+      this.erro = '';
+      this.detalhe = null;
+      try {
+        const { data } = await window.axios.get('/api/svt/auditoria', {
+          params: { ...this.filtros, page: pagina, per_page: 15 },
+        });
+        this.eventos = data.data || [];
+        this.meta = data.meta || this.meta;
+        this.indicadores = data.indicadores || this.indicadores;
+      } catch (error) {
+        this.eventos = [];
+        this.erro = error.response?.data?.message || 'Não foi possível carregar a auditoria.';
+      } finally {
+        this.carregando = false;
+      }
+    },
+    aplicar() {
+      this.carregar(1);
+    },
+    limpar() {
+      this.filtros = VAZIO();
+      this.carregar(1);
+    },
+    ir(pagina) {
+      this.carregar(pagina);
+    },
+    async abrir(evento) {
+      this.erro = '';
+      try {
+        const { data } = await window.axios.get(`/api/svt/auditoria/${evento.id}`);
+        this.detalhe = data.evento;
+      } catch (error) {
+        this.erro = error.response?.data?.message || 'Não foi possível abrir o evento.';
+      }
+    },
+    quando(valor) {
+      if (!valor) return '—';
+      const data = new Date(valor);
+      if (Number.isNaN(data.getTime())) return valor;
+      return new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short',
+      }).format(data);
+    },
+    rotuloCategoria(valor) {
+      return this.categorias.find((item) => item.valor === valor)?.rotulo || valor || '—';
+    },
+    rotuloResultado(valor) {
+      return { sucesso: 'Sucesso', falha: 'Falha', negado: 'Acesso negado' }[valor] || valor || '—';
+    },
+    texto(valor) {
+      if (!valor || (typeof valor === 'object' && !Object.keys(valor).length)) return 'Sem alteração registrada.';
+      return JSON.stringify(valor, null, 2);
+    },
+  },
+};
+</script>

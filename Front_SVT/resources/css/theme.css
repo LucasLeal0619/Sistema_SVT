@@ -728,7 +728,7 @@ html[data-theme='dark'] .crud-toolbar {
 
 /* Login: tema próprio (não herdar o fundo genérico das páginas internas) */
 html[data-theme='dark'] .login-page {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html[data-theme='dark'] .login-page,
@@ -785,7 +785,7 @@ html[data-theme='dark'] .login-page .login-page-footer {
 
 html[data-theme='light'] .login-page-footer,
 .login-page-footer {
-  background: #004587 !important;
+  background: #003f7d !important;
   color: rgba(255, 255, 255, 0.88) !important;
   border: none !important;
 }
@@ -797,18 +797,13 @@ html[data-theme='dark'] .login-page-footer {
 
 html[data-theme='light'] body:has(.login-page),
 html[data-theme='light'] #app:has(.login-page),
-html[data-theme='light']:has(.login-page) {
-  background: #004587 !important;
-  min-height: 100%;
-  height: 100%;
-}
-
+html[data-theme='light']:has(.login-page),
 html[data-theme='dark'] body:has(.login-page),
 html[data-theme='dark'] #app:has(.login-page),
 html[data-theme='dark']:has(.login-page) {
-  background: #071525 !important;
+  background: #f8fafc !important;
   min-height: 100%;
-  height: 100%;
+  height: auto;
 }
 
 html[data-theme='dark'] .sidebar,

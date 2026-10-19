@@ -4,6 +4,10 @@
  * 2.1.0 — ciclo global, estruturas institucionais, sidebar e login.
  * Renomeado de SGP para SIPED (Sistema Integrado Pedagógico).
  */
-export const SIPED_VERSAO = '2.1.0';
+export const SVT_VERSAO = '0.1.0';
 
-export const SIPED_RODAPE = `© 2026 SENAC DF · SIPED v${SIPED_VERSAO} · Uso interno`;
+export const SIPED_VERSAO = SVT_VERSAO;
+
+export const SVT_RODAPE = `© 2026 SENAC DF · SVT v${SVT_VERSAO} · Visitas técnicas`;
+
+export const SIPED_RODAPE = SVT_RODAPE;

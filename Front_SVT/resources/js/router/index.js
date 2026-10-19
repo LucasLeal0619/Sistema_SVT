@@ -1,81 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { garantirSessao, podeAcessarMenu } from '../scripts/auth';
+import { PERFIS, destinoInterno, garantirSessao, getPerfil, podeAcessarMenu } from '../scripts/auth';
 
 const appChildren = [
-  { path: 'inicio', name: 'inicio', component: () => import('../pages/Inicio.vue'), meta: { menu: 'inicio' } },
-  { path: 'dashboard', name: 'dashboard', component: () => import('../pages/Dashboard.vue'), meta: { menu: 'dashboard' } },
-  { path: 'relatorios', name: 'relatorios', component: () => import('../pages/Relatorios.vue'), meta: { menu: 'relatorios' } },
-  { path: 'importacoes', name: 'importacoes', component: () => import('../pages/Importacoes.vue'), meta: { menu: 'importacoes' } },
-  { path: 'importacoes/revisao-dados', name: 'revisao-dados', component: () => import('../pages/RevisaoDados.vue'), meta: { menu: 'importacoes' } },
-  { path: 'cursos', name: 'cursos', component: () => import('../pages/Cursos.vue'), meta: { menu: 'cursos' } },
-  { path: 'ciclos', name: 'ciclos', component: () => import('../pages/CiclosPortfolio.vue'), meta: { menu: 'ciclos' } },
-  { path: 'ciclos-portfolio', redirect: { name: 'ciclos' } },
-  { path: 'plano-de-metas', name: 'plano-de-metas', component: () => import('../pages/PlanoDeMetas.vue'), meta: { menu: 'plano-de-metas' } },
-  { path: 'pca', name: 'pca', component: () => import('../pages/Pca.vue'), meta: { menu: 'pca' } },
-  { path: 'controle-de-resolucoes', name: 'controle-de-resolucoes', component: () => import('../pages/ControleDeResolucao.vue'), meta: { menu: 'controle-de-resolucoes' } },
-  { path: 'termos-de-referencia', name: 'termos-de-referencia', component: () => import('../pages/TermosReferencia.vue'), meta: { menu: 'termos-de-referencia' } },
-  { path: 'eixos', name: 'eixos', component: () => import('../pages/Eixos.vue'), meta: { menu: 'eixos' } },
-  { path: 'eixos/:id', name: 'eixos-detalhe', component: () => import('../pages/EixoDetalhe.vue'), meta: { menu: 'eixos' } },
-  { path: 'visitas-tecnicas', name: 'visitas-tecnicas', component: () => import('../pages/VisitasTecnicas.vue'), meta: { menu: 'visitas-tecnicas' } },
-  { path: 'horas-pedagogicas', name: 'horas-pedagogicas', component: () => import('../pages/HorasPedagogicas.vue'), meta: { menu: 'horas-pedagogicas' } },
-  { path: 'acoes-extensivas', name: 'acoes-extensivas', component: () => import('../pages/AcoesExtensivas.vue'), meta: { menu: 'acoes-extensivas' } },
-  { path: 'eventos', name: 'eventos', component: () => import('../pages/Eventos.vue'), meta: { menu: 'eventos' } },
-  { path: 'jornada-pedagogica', name: 'jornada-pedagogica', component: () => import('../pages/JornadaPedagogica.vue'), meta: { menu: 'jornada-pedagogica' } },
-  { path: 'sistemas-apoio', name: 'sistemas-apoio', component: () => import('../pages/SistemasApoio.vue'), meta: { menu: 'sistemas-apoio' } },
-  { path: 'estruturas-institucionais', name: 'estruturas-institucionais', component: () => import('../pages/Unidades.vue'), meta: { menu: 'estruturas-institucionais' } },
-  { path: 'unidades', redirect: { name: 'estruturas-institucionais' } },
-  { path: 'ferramentas', name: 'ferramentas', component: () => import('../pages/Ferramentas.vue'), meta: { menu: 'ferramentas' } },
-  {
-    path: 'ferramentas/kanban',
-    name: 'ferramentas-kanban',
-    component: () => import('../pages/KanbanQuadros.vue'),
-    meta: { menu: 'ferramentas' },
-  },
-  {
-    path: 'ferramentas/kanban/:slug',
-    name: 'ferramentas-kanban-quadro',
-    component: () => import('../pages/Kanban.vue'),
-    meta: { menu: 'ferramentas' },
-  },
-  {
-    path: 'ferramentas/organograma',
-    name: 'ferramentas-organograma',
-    component: () => import('../pages/Organograma.vue'),
-    meta: { menu: 'ferramentas' },
-  },
-  {
-    path: 'ferramentas/carometro',
-    name: 'ferramentas-carometro',
-    component: () => import('../pages/Carometro.vue'),
-    meta: { menu: 'ferramentas' },
-  },
-  {
-    path: 'ferramentas/fluxograma',
-    name: 'ferramentas-fluxograma',
-    component: () => import('../pages/Fluxogramas.vue'),
-    meta: { menu: 'ferramentas' },
-  },
-  {
-    path: 'ferramentas/fluxograma/:slug',
-    name: 'ferramentas-fluxograma-editor',
-    component: () => import('../pages/FluxogramaEditor.vue'),
-    meta: { menu: 'ferramentas' },
-  },
-  { path: 'cped', name: 'cped', component: () => import('../pages/Cped.vue'), meta: { menu: 'cped' } },
-  { path: 'auditoria', name: 'auditoria', component: () => import('../pages/Auditoria.vue'), meta: { menu: 'auditoria' } },
+  { path: 'painel', name: 'painel', component: () => import('../pages/SvtPainel.vue'), meta: { menu: 'painel' } },
+  { path: 'solicitacoes', name: 'solicitacoes', component: () => import('../pages/SvtSolicitacoes.vue'), meta: { menu: 'solicitacoes' } },
+  { path: 'fila', name: 'fila', component: () => import('../pages/SvtSolicitacoes.vue'), props: { fila: true }, meta: { menu: 'fila' } },
+  { path: 'relatorios', name: 'relatorios', component: () => import('../pages/SvtRelatorios.vue'), meta: { menu: 'relatorios' } },
+  { path: 'relatorios-visita', name: 'relatoriosVisita', component: () => import('../pages/SvtRelatoriosVisita.vue'), meta: { menu: 'relatoriosVisita' } },
   { path: 'usuarios', name: 'usuarios', component: () => import('../pages/Usuarios.vue'), meta: { menu: 'usuarios' } },
+  { path: 'auditoria', name: 'auditoria', component: () => import('../pages/Auditoria.vue'), meta: { menu: 'auditoria' } },
+  { path: 'configuracoes/:secao?', redirect: '/app/painel' },
+  { path: 'cadastros', redirect: '/app/painel' },
+  { path: 'inicio', redirect: '/app/painel' },
+  { path: 'visitas-tecnicas', redirect: '/app/solicitacoes' },
+  { path: ':pathMatch(.*)*', redirect: '/app/painel' },
 ];
 
-const redirects = appChildren.map((route) => ({
-  path: `/${route.path}`,
-  redirect: `/app/${route.path}`,
-}));
-
 const routes = [
-  {
-    path: '/',
-    redirect: '/login',
-  },
+  { path: '/', redirect: '/login' },
   {
     path: '/login',
     name: 'login',
@@ -84,14 +26,10 @@ const routes = [
   {
     path: '/app',
     component: () => import('../layouts/AppLayout.vue'),
-    redirect: '/app/inicio',
+    redirect: '/app/painel',
     children: appChildren,
   },
-  ...redirects,
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/login',
-  },
+  { path: '/:pathMatch(.*)*', redirect: '/login' },
 ];
 
 const router = createRouter({
@@ -103,11 +41,7 @@ router.beforeEach(async (to) => {
   const normalizedPath = to.path.toLowerCase();
 
   if (to.path !== normalizedPath) {
-    return {
-      path: normalizedPath,
-      query: to.query,
-      hash: to.hash,
-    };
+    return { path: normalizedPath, query: to.query, hash: to.hash };
   }
 
   const requiresAuth = to.path.startsWith('/app');
@@ -116,64 +50,45 @@ router.beforeEach(async (to) => {
   if (requiresAuth && !sessaoOk) {
     return {
       name: 'login',
-      query: to.fullPath !== '/app/inicio' && to.fullPath !== '/app'
+      query: to.fullPath !== '/app/painel' && to.fullPath !== '/app'
         ? { redirect: to.fullPath }
         : {},
     };
   }
 
   if (to.name === 'login' && sessaoOk) {
-    return { path: '/app/inicio' };
+    const pedido = typeof to.query.redirect === 'string' ? to.query.redirect : '';
+    return destinoInterno(pedido, '/app/painel');
   }
 
   if (requiresAuth && sessaoOk) {
     const menuKey = to.meta?.menu;
-
     if (menuKey && !podeAcessarMenu(menuKey)) {
-      return { path: '/app/inicio' };
+      return { path: '/app/painel' };
     }
   }
 });
 
 const TITULOS_PAGINA = {
   login: 'Login',
-  inicio: 'Início',
-  dashboard: 'Dashboard',
-  relatorios: 'Relatórios',
-  importacoes: 'Importações',
-  'revisao-dados': 'Revisão de Dados',
-  eixos: 'Eixos',
-  'eixos-detalhe': 'Eixo',
-  cursos: 'Cursos',
-  ciclos: 'Ciclos de Gestão',
-  'ciclos-portfolio': 'Ciclos de Gestão',
-  'plano-de-metas': 'Plano de Metas',
-  pca: 'PCA',
-  'controle-de-resolucoes': 'Controle de Resoluções',
-  'termos-de-referencia': 'Termos de Referência',
-  'visitas-tecnicas': 'Visitas Técnicas',
-  'horas-pedagogicas': 'Horas Pedagógicas',
-  'acoes-extensivas': 'Ações Extensivas',
-  eventos: 'Eventos',
-  'jornada-pedagogica': 'Jornada Pedagógica',
-  'sistemas-apoio': 'Sistemas de Apoio',
-  unidades: 'Estruturas Institucionais',
-  'estruturas-institucionais': 'Estruturas Institucionais',
-  ferramentas: 'Ferramentas',
-  'ferramentas-kanban': 'Kanban',
-  'ferramentas-kanban-quadro': 'Kanban',
-  'ferramentas-organograma': 'Organograma',
-  'ferramentas-carometro': 'Carômetro',
-  'ferramentas-fluxograma': 'Fluxogramas',
-  'ferramentas-fluxograma-editor': 'Editor de Fluxograma',
-  cped: 'CPED',
+  painel: 'Dashboard',
+  solicitacoes: 'Solicitações',
+  fila: 'Pendências',
+  relatorios: 'Relatórios gerenciais',
+  relatoriosVisita: 'Relatórios de visita',
+  usuarios: 'Usuários e acessos',
   auditoria: 'Auditoria',
-  usuarios: 'Usuários',
 };
 
 router.afterEach((to) => {
-  const titulo = TITULOS_PAGINA[to.name] || 'SIPED';
-  document.title = `${titulo} · SIPED`;
+  let titulo = TITULOS_PAGINA[to.name] || 'SVT';
+  if (to.name === 'painel' && getPerfil() !== PERFIS.ADMINISTRADOR) {
+    titulo = 'Início';
+  }
+  if (to.name === 'fila' && getPerfil() === PERFIS.NULOG) {
+    titulo = 'Transporte';
+  }
+  document.title = `${titulo} · SVT`;
 });
 
 export default router;

@@ -1,8 +1,12 @@
 <template>
   <nav class="sidebar" :class="{ 'sidebar--open': aberto, 'sidebar--collapsed': recolhido }">
     <div class="sidebar-header">
-      <router-link to="/app/inicio" class="sidebar-logo-link" title="Ir para o início" @click="onNavigate">
+      <router-link to="/app/painel" class="sidebar-logo-link" title="Ir para o painel" @click="onNavigate">
         <img :src="logoSenac" alt="Senac" class="sidebar-logo" />
+        <span class="sidebar-brand-copy">
+          <strong>SVT</strong>
+          <span>Visitas técnicas</span>
+        </span>
       </router-link>
       <button
         type="button"

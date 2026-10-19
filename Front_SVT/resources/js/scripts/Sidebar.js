@@ -31,46 +31,15 @@ const MENU_SECOES = [
   {
     titulo: null,
     itens: [
-      { rota: 'inicio', label: 'Início', path: '/app/inicio', icon: 'home' },
-      { rota: 'dashboard', label: 'Dashboard', path: '/app/dashboard', icon: 'dashboard' },
+      { rota: 'painel', label: 'Painel', path: '/app/painel', icon: 'home' },
+      { rota: 'solicitacoes', label: 'Solicitações', path: '/app/solicitacoes', icon: 'visitas' },
+      { rota: 'fila', label: 'Minha fila', path: '/app/fila', icon: 'horas' },
       { rota: 'relatorios', label: 'Relatórios', path: '/app/relatorios', icon: 'relatorios' },
-      { rota: 'importacoes', label: 'Importações', path: '/app/importacoes', icon: 'importacoes' },
     ],
   },
   {
-    titulo: 'Portfólio',
+    titulo: 'Acesso',
     itens: [
-      { rota: 'cursos', label: 'Cursos', path: '/app/cursos', icon: 'cursos' },
-      { rota: 'plano-de-metas', label: 'Plano de Metas', path: '/app/plano-de-metas', icon: 'metas' },
-      { rota: 'pca', label: 'PCA', path: '/app/pca', icon: 'pca' },
-      { rota: 'eixos', label: 'Eixos', path: '/app/eixos', icon: 'eixos' },
-    ],
-  },
-  {
-    titulo: 'Prazos',
-    itens: [
-      { rota: 'controle-de-resolucoes', label: 'Controle de Resoluções', path: '/app/controle-de-resolucoes', icon: 'resolucoes' },
-      { rota: 'termos-de-referencia', label: 'Termos de Referência', path: '/app/termos-de-referencia', icon: 'termosReferencia' },
-    ],
-  },
-  {
-    titulo: 'Processos',
-    itens: [
-      { rota: 'visitas-tecnicas', label: 'Visitas Técnicas', path: '/app/visitas-tecnicas', icon: 'visitas' },
-      { rota: 'horas-pedagogicas', label: 'Horas Pedagógicas', path: '/app/horas-pedagogicas', icon: 'horas' },
-      { rota: 'acoes-extensivas', label: 'Ações Extensivas', path: '/app/acoes-extensivas', icon: 'acoes' },
-      { rota: 'eventos', label: 'Eventos', path: '/app/eventos', icon: 'eventos' },
-      { rota: 'jornada-pedagogica', label: 'Jornada Pedagógica', path: '/app/jornada-pedagogica', icon: 'jornada' },
-    ],
-  },
-  {
-    titulo: 'Institucional',
-    itens: [
-      { rota: 'sistemas-apoio', label: 'Sistemas de Apoio', path: '/app/sistemas-apoio', icon: 'sistemasApoio' },
-      { rota: 'estruturas-institucionais', label: 'Estruturas Institucionais', path: '/app/estruturas-institucionais', icon: 'estruturas' },
-      { rota: 'ferramentas', label: 'Ferramentas', path: '/app/ferramentas', icon: 'ferramentas' },
-      { rota: 'cped', label: 'CPED', path: '/app/cped', icon: 'cped' },
-      { rota: 'auditoria', label: 'Auditoria', path: '/app/auditoria', icon: 'auditoria' },
       { rota: 'usuarios', label: 'Usuários', path: '/app/usuarios', icon: 'usuarios' },
     ],
   },
@@ -94,10 +63,7 @@ export default {
       logoSenac,
       icons: ICONS,
       secoesAbertas: {
-        'Portfólio': false,
-        'Prazos': false,
-        'Processos': false,
-        'Institucional': false,
+        Acesso: false,
       },
     };
   },

@@ -1,6 +1,5 @@
 import axios from 'axios';
-import { clearSessao } from './scripts/auth';
-import { lerCicloContexto } from './scripts/cicloContexto';
+import { clearSessao, destinoInterno, sessaoEmSaida } from './scripts/auth';
 
 window.axios = axios;
 
@@ -14,11 +13,12 @@ if (token) {
 }
 
 window.axios.interceptors.request.use((config) => {
-  const ciclo = lerCicloContexto();
-  if (ciclo?.id) {
-    config.headers = config.headers || {};
-    config.headers['X-SIPED-Ciclo-Id'] = String(ciclo.id);
+  const url = String(config.url || '');
+  const entrando = url.includes('/login');
+  if (sessaoEmSaida() && !url.includes('/logout') && !entrando) {
+    return Promise.reject(new axios.CanceledError('sessao encerrada'));
   }
+
   return config;
 });
 
@@ -32,7 +32,8 @@ window.axios.interceptors.response.use(
       const jaNoLogin = window.location.pathname.toLowerCase().startsWith('/login');
 
       if (!skipRedirect && !jaNoLogin) {
-        window.location.replace('/login');
+        const destino = destinoInterno(`${window.location.pathname}${window.location.search}${window.location.hash}`, '');
+        window.location.replace(destino ? `/login?redirect=${encodeURIComponent(destino)}` : '/login');
       }
     }
 

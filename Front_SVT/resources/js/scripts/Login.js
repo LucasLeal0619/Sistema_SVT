@@ -1,56 +1,89 @@
 import logoSenac from '../../images/Logo-Senac-branco.png';
-import { marcarSessao } from './auth';
-import { SIPED_RODAPE } from './versao';
+import { destinoInterno, marcarSessao, prepararLogin } from './auth';
+import { SVT_VERSAO } from './versao';
 
-const STORAGE_CREDENCIAIS = 'sgp_login_lembrado';
+const STORAGE_EMAIL = 'svt_login_email';
+const STORAGE_LEGADO = 'sgp_login_lembrado';
 
 export default {
   name: 'Login',
   data() {
     return {
       logoSenac,
-      rodapeVersao: SIPED_RODAPE,
+      versao: SVT_VERSAO,
       email: '',
       senha: '',
-      lembrar: true,
+      lembrar: false,
       showPassword: false,
       loading: false,
+      concluido: false,
       errorMessage: '',
+      erroEmail: '',
+      erroSenha: '',
     };
   },
   mounted() {
-    this.carregarCredenciaisSalvas();
+    prepararLogin();
+    this.carregarEmailSalvo();
   },
   methods: {
-    carregarCredenciaisSalvas() {
+    carregarEmailSalvo() {
       try {
-        const raw = localStorage.getItem(STORAGE_CREDENCIAIS);
-        if (!raw) return;
-
-        const salvo = JSON.parse(raw);
-        this.email = salvo.email || '';
-        this.senha = salvo.senha || '';
-        this.lembrar = true;
+        const legado = localStorage.getItem(STORAGE_LEGADO);
+        if (legado) {
+          const salvo = JSON.parse(legado);
+          if (salvo?.email && !localStorage.getItem(STORAGE_EMAIL)) {
+            localStorage.setItem(STORAGE_EMAIL, String(salvo.email));
+          }
+          localStorage.removeItem(STORAGE_LEGADO);
+        }
       } catch {
-        localStorage.removeItem(STORAGE_CREDENCIAIS);
+        localStorage.removeItem(STORAGE_LEGADO);
       }
+
+      const email = localStorage.getItem(STORAGE_EMAIL) || '';
+      if (!email) return;
+
+      this.email = email;
+      this.lembrar = true;
     },
 
-    salvarCredenciais() {
-      if (!this.lembrar) {
-        localStorage.removeItem(STORAGE_CREDENCIAIS);
+    guardarEmail() {
+      const email = this.email.trim();
+      if (this.lembrar && email) {
+        localStorage.setItem(STORAGE_EMAIL, email);
         return;
       }
 
-      localStorage.setItem(STORAGE_CREDENCIAIS, JSON.stringify({
-        email: this.email,
-        senha: this.senha,
-      }));
+      localStorage.removeItem(STORAGE_EMAIL);
+    },
+
+    validar() {
+      this.erroEmail = '';
+      this.erroSenha = '';
+      this.email = this.email.trim();
+
+      if (!this.email) {
+        this.erroEmail = 'Informe o e-mail institucional.';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
+        this.erroEmail = 'Informe um e-mail válido.';
+      }
+
+      if (!this.senha) {
+        this.erroSenha = 'Informe a senha.';
+      }
+
+      return !this.erroEmail && !this.erroSenha;
     },
 
     async handleLogin() {
-      this.loading = true;
+      if (this.loading) return;
+
       this.errorMessage = '';
+      this.concluido = false;
+      if (!this.validar()) return;
+
+      this.loading = true;
 
       try {
         const { data } = await window.axios.post('/api/login', {
@@ -58,11 +91,12 @@ export default {
           senha: this.senha,
         });
 
-        this.salvarCredenciais();
+        this.concluido = true;
+        this.guardarEmail();
         marcarSessao(data.token, data.usuario);
 
-        const redirect = this.$route.query.redirect || '/app/inicio';
-        this.$router.replace(redirect);
+        const pedido = typeof this.$route.query.redirect === 'string' ? this.$route.query.redirect : '';
+        this.$router.replace(destinoInterno(pedido, '/app/inicio'));
       } catch (error) {
         const raw = typeof error.response?.data === 'string' ? error.response.data : '';
         if (error.response?.status === 429) {
@@ -78,12 +112,16 @@ export default {
         } else if (error.response?.status === 500) {
           this.errorMessage = error.response?.data?.message
             || 'Erro interno no servidor (HTTP 500). Verifique o back-end e o espaço em disco.';
+        } else if (!error.response) {
+          this.errorMessage = 'Não foi possível falar com o servidor. Confira sua conexão e tente novamente.';
         } else {
           this.errorMessage = error.response?.data?.message
-            || `Não foi possível entrar (HTTP ${error.response?.status || 'sem resposta'}). Confira se o back está na pasta Back_SIPED e rode php artisan optimize:clear.`;
+            || 'Não foi possível entrar. Confira o e-mail e a senha.';
         }
       } finally {
-        this.loading = false;
+        if (!this.concluido) {
+          this.loading = false;
+        }
       }
     },
   },

@@ -1,346 +1,164 @@
 <template>
-  <div class="usuarios-page crud-page">
-    <!-- LISTA -->
+  <section class="svt-page svt-page--wide">
     <template v-if="modo === 'lista'">
-      <CrudPageHeader
-        title="Usuários"
-        subtitle="Controle de acesso e perfis do SIPED — SENAC DF"
-        info="O administrador cadastra o colaborador e define o e-mail e a senha de acesso ao sistema."
-        :show-novo="podeEditar"
-        novo-label="Novo Usuário"
-        :show-clear-filters="temFiltro"
-        filters-aria-label="Filtros de usuários"
-        @novo="abrirNovo"
-        @limpar-filtros="limparFiltros"
-      >
-        <template #filters>
-          <section class="filtros-bar" aria-label="Filtros de usuários">
-            <div class="filtro-busca">
-              <input
-                v-model="filtros.busca"
-                type="search"
-                placeholder="Buscar por nome, e-mail, telefone ou estrutura..."
-                aria-label="Buscar usuários"
-                @input="aplicarFiltros"
-              />
-            </div>
-            <SearchableSelect
-              v-model="filtros.perfil"
-              :options="[
-                { value: 'Administrador', label: 'Administrador' },
-                { value: 'Editor', label: 'Editor' },
-                { value: 'Consultor', label: 'Consultor' },
-              ]"
-              empty-option="Todos os perfis"
-              aria-label="Filtrar por perfil"
-              @change="aplicarFiltros"
-            />
-            <SearchableSelect
-              v-model="filtros.status"
-              :options="[
-                { value: 'true', label: 'Ativo' },
-                { value: 'false', label: 'Inativo' },
-              ]"
-              empty-option="Todos os status"
-              aria-label="Filtrar por status"
-              @change="aplicarFiltros"
-            />
-          </section>
+      <header>
+        <h1>Usuários</h1>
+        <p class="svt-lead">
+          Cadastre quem entra. No núcleo, a unidade define os pedidos que a pessoa vê.
+          Na coordenação, a área tem que ser a do eixo.
+        </p>
+      </header>
+
+      <div class="svt-row-actions" v-if="podeEditar">
+        <button class="svt-btn" type="button" @click="abrirNovo">Novo usuário</button>
+      </div>
+
+      <p v-if="mensagemSucesso" class="svt-alert is-ok">{{ mensagemSucesso }}</p>
+      <p v-if="mensagemErro" class="svt-alert">{{ mensagemErro }}</p>
+
+      <PainelFiltros>
+        <template #busca>
+          <input
+            v-model="filtros.busca"
+            type="search"
+            placeholder="Nome ou e-mail"
+            aria-label="Buscar usuários"
+            @input="aplicarFiltros"
+          />
         </template>
-      </CrudPageHeader>
+        <select v-model="filtros.perfil" aria-label="Função" @change="aplicarFiltros">
+          <option value="">Todas as funções</option>
+          <option v-for="papel in papeis" :key="papel.nome" :value="papel.nome">{{ papel.nome }}</option>
+        </select>
+        <select v-model="filtros.unidade" aria-label="Unidade" @change="aplicarFiltros">
+          <option value="">Todas as unidades</option>
+          <option v-for="unidade in unidades" :key="unidade.value || unidade" :value="unidade.value || unidade">
+            {{ unidade.label || unidade }}
+          </option>
+        </select>
+        <select v-model="filtros.status" aria-label="Status" @change="aplicarFiltros">
+          <option value="">Ativos e inativos</option>
+          <option value="true">Ativos</option>
+          <option value="false">Inativos</option>
+        </select>
+      </PainelFiltros>
 
-      <div v-if="mensagemSucesso" class="alert alert-success">{{ mensagemSucesso }}</div>
-      <div v-if="mensagemErro" class="alert alert-error">{{ mensagemErro }}</div>
+      <p v-if="carregando" class="svt-muted">Carregando...</p>
+      <p v-else-if="usuarios.length === 0" class="svt-muted">Nenhum usuário com esses filtros.</p>
+      <ListaResponsiva v-else :itens="usuarios" :colunas="colunasLista">
+        <template #celula-status="{ item }">{{ item.status ? 'Ativo' : 'Inativo' }}</template>
+        <template #acao="{ item }">
+          <div class="svt-acoes">
+            <button class="svt-btn secondary" type="button" @click="abrirEdicao(item)">Editar</button>
+            <button
+              v-if="item.status"
+              class="svt-btn danger"
+              type="button"
+              :disabled="alternandoId === item.id"
+              @click="inativarUsuario(item)"
+            >Inativar</button>
+            <button
+              v-else
+              class="svt-btn secondary"
+              type="button"
+              :disabled="alternandoId === item.id"
+              @click="inativarUsuario(item)"
+            >Ativar</button>
+          </div>
+        </template>
+      </ListaResponsiva>
 
-      <PageTableCard :total="meta.total" :pagination="meta" :pagination-disabled="carregando" aria-label="Tabela de usuários" @page-change="irParaPagina" @per-page-change="alterarRegistrosPorPagina">
-
-        <div v-if="carregando" class="tabela-loading">Carregando...</div>
-
-        <div v-else class="tabela-wrap">
-          <table class="usuarios-table">
-            <thead>
-              <tr>
-                <th>Usuário</th>
-                <th>Telefone</th>
-                <th>Perfil</th>
-                <th>Estrutura</th>
-                <th class="text-center">Status</th>
-                <th class="text-center">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="usuarios.length === 0">
-                <td colspan="6" class="tabela-vazia">
-                  Nenhum usuário encontrado para os filtros selecionados.
-                </td>
-              </tr>
-              <tr v-for="usuario in usuarios" :key="usuario.id">
-                <td>
-                  <div class="user-cell">
-                    <span class="avatar" :class="avatarClass(usuario.perfil)">
-                      <img v-if="usuario.foto" :src="usuario.foto" :alt="usuario.nome" />
-                      <template v-else>{{ iniciais(usuario.nome) }}</template>
-                    </span>
-                    <div>
-                      <p class="user-nome">{{ usuario.nome }}</p>
-                      <p class="user-email">{{ usuario.email }}</p>
-                    </div>
-                  </div>
-                </td>
-                <td>{{ usuario.telefone || '—' }}</td>
-                <td>
-                  <span class="badge" :class="badgePerfil(usuario.perfil)">
-                    {{ usuario.perfil }}
-                  </span>
-                </td>
-                <td>{{ usuario.unidade || '—' }}</td>
-                <td class="text-center">
-                  <span class="badge" :class="usuario.status ? 'badge-ativo' : 'badge-inativo'">
-                    {{ usuario.status ? 'Ativo' : 'Inativo' }}
-                  </span>
-                </td>
-                <td class="text-center acoes">
-                  <button
-                    type="button"
-                    class="btn-icon btn-view"
-                    title="Ver detalhes"
-                    aria-label="Ver detalhes do usuário"
-                    @click="abrirDetalhes(usuario)"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-icon btn-edit"
-                    title="Editar usuário"
-                    aria-label="Editar usuário"
-                    @click="abrirEdicao(usuario)"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-icon btn-delete"
-                    title="Excluir usuário"
-                    aria-label="Excluir usuário"
-                    @click="excluirUsuario(usuario)"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="svt-pager">
+        <span class="svt-muted">
+          {{ meta.from || 0 }}–{{ meta.to || 0 }} de {{ meta.total || 0 }}
+        </span>
+        <div class="svt-pager-nav">
+          <button class="svt-btn secondary" type="button" :disabled="meta.current_page <= 1 || carregando" @click="irParaPagina(meta.current_page - 1)">Anterior</button>
+          <button class="svt-btn secondary" type="button" :disabled="meta.current_page >= meta.last_page || carregando" @click="irParaPagina(meta.current_page + 1)">Próxima</button>
         </div>
+      </div>
+    </template>
 
-        <div class="tabela-footer">
-          {{ usuarios.length }} usuário{{ usuarios.length !== 1 ? 's' : '' }} listado{{ usuarios.length !== 1 ? 's' : '' }}
-        </div>
-      </PageTableCard>
+    <form v-else class="svt-ficha" @submit.prevent="salvarUsuario">
+      <button class="svt-back" type="button" @click="voltarLista">Voltar</button>
+      <h2>{{ modo === 'novo' ? 'Novo acesso' : 'Ajustar acesso' }}</h2>
+      <p class="svt-muted">Escolha a função antes do resto. O e-mail é o login.</p>
+      <p v-if="erroFormulario" class="svt-alert">{{ erroFormulario }}</p>
+      <p v-if="perfilFora" class="svt-alert">
+        Este acesso está como {{ form.perfil }}, um papel que esta tela não oferece. Escolha um abaixo.
+      </p>
 
-      <!-- Modal detalhes -->
-      <div
-        v-if="usuarioDetalhe"
-        class="modal-overlay"
-        @click.self="fecharDetalhes"
+      <label class="svt-field">Função
+        <select v-model="form.perfil" required @change="escolherPapel(form.perfil)">
+          <option value="">Selecione</option>
+          <option v-for="papel in papeis" :key="papel.nome" :value="papel.nome">{{ papel.nome }} — {{ papel.resumo }}</option>
+        </select>
+      </label>
+      <p v-if="papelEscolhido" class="svt-alert is-ok">{{ papelEscolhido.frase }}</p>
+
+      <label class="svt-field">Nome
+        <input id="nome" v-model="form.nome" type="text" required maxlength="100" autocomplete="name" />
+      </label>
+      <label class="svt-field">E-mail de login
+        <input id="email" v-model="form.email" type="email" required maxlength="100" autocomplete="off" />
+      </label>
+      <div class="svt-grid-2">
+        <label class="svt-field">Telefone
+          <input id="telefone" v-model="form.telefone" type="tel" inputmode="tel" required maxlength="20" @input="formatarTelefone" />
+        </label>
+        <label class="svt-field">CPF
+          <input id="cpf" v-model="form.cpf" type="text" inputmode="numeric" required maxlength="14" @input="formatarCpf" />
+        </label>
+      </div>
+      <label class="svt-field">Unidade
+        <select id="unidade" v-model="form.unidade" required>
+          <option value="">Selecione</option>
+          <option v-for="unidade in unidades" :key="unidade.value || unidade" :value="unidade.value || unidade">
+            {{ unidade.label || unidade }}
+          </option>
+        </select>
+        <small v-if="form.perfil === 'Núcleo Pedagógico'">Esta pessoa só recebe pedidos desta unidade.</small>
+      </label>
+      <label v-if="ehCped" class="svt-field">Área do eixo
+        <select id="area" v-model="form.area" required>
+          <option value="">Selecione a coordenação</option>
+          <option v-for="area in areasCped" :key="area" :value="area">{{ area }}</option>
+        </select>
+        <small>Tem que ser exatamente a coordenação do eixo. Outro texto e o pedido não aparece.</small>
+      </label>
+      <label v-else class="svt-field">Área
+        <input id="area" v-model="form.area" type="text" required maxlength="100" />
+        <small>Serve para identificar onde a pessoa atua. Na coordenação, use a lista fechada.</small>
+      </label>
+      <div class="svt-grid-2">
+        <label class="svt-field">Senha
+          <input id="senha" v-model="form.senha" type="password" :required="modo === 'novo'" minlength="6" maxlength="100" autocomplete="new-password" />
+        </label>
+        <label class="svt-field">Confirmar senha
+          <input id="confirmarSenha" v-model="form.confirmarSenha" type="password" :required="modo === 'novo' || !!form.senha" minlength="6" maxlength="100" autocomplete="new-password" />
+        </label>
+      </div>
+      <label class="svt-check">
+        <input v-model="form.status" type="checkbox" />
+        Acesso ativo
+      </label>
+
+      <div class="svt-row-actions">
+        <button class="svt-btn secondary" type="button" @click="voltarLista">Cancelar</button>
+        <button class="svt-btn" type="submit" :disabled="salvando">
+          {{ salvando ? 'Salvando...' : 'Salvar acesso' }}
+        </button>
+      </div>
+      <button
+        v-if="editandoId"
+        class="svt-btn danger block"
+        type="button"
+        @click="excluirUsuario({ id: editandoId, nome: form.nome })"
       >
-        <div class="modal-detalhes" role="dialog" aria-labelledby="detalhes-titulo">
-          <div class="modal-detalhes-header">
-            <div>
-              <h2 id="detalhes-titulo">Detalhes do Registro</h2>
-              <p class="modal-detalhes-subtitle">Informações resumidas do usuário selecionado.</p>
-            </div>
-            <button type="button" class="btn-fechar-x" title="Fechar" aria-label="Fechar" @click="fecharDetalhes">
-              ×
-            </button>
-          </div>
-
-          <div class="modal-form-wrap">
-            <div class="detalhe-avatar-wrap">
-              <span class="avatar avatar-lg" :class="avatarClass(usuarioDetalhe.perfil)">
-                <img v-if="usuarioDetalhe.foto" :src="usuarioDetalhe.foto" :alt="usuarioDetalhe.nome" />
-                <template v-else>{{ iniciais(usuarioDetalhe.nome) }}</template>
-              </span>
-            </div>
-            <div class="detalhe-form-grid">
-              <div class="detalhe-form-campo campo-full">
-                <span>Nome</span>
-                <div class="detalhe-valor-box">{{ usuarioDetalhe.nome || '—' }}</div>
-              </div>
-              <div class="detalhe-form-campo campo-full">
-                <span>E-mail</span>
-                <div class="detalhe-valor-box">{{ usuarioDetalhe.email || '—' }}</div>
-              </div>
-              <div class="detalhe-form-campo">
-                <span>Perfil</span>
-                <div class="detalhe-valor-box">{{ usuarioDetalhe.perfil || '—' }}</div>
-              </div>
-              <div class="detalhe-form-campo">
-                <span>Status</span>
-                <div class="detalhe-valor-box">{{ usuarioDetalhe.status ? 'Ativo' : 'Inativo' }}</div>
-              </div>
-              <div class="detalhe-form-campo">
-                <span>Telefone</span>
-                <div class="detalhe-valor-box">{{ usuarioDetalhe.telefone || '—' }}</div>
-              </div>
-              <div class="detalhe-form-campo">
-                <span>CPF</span>
-                <div class="detalhe-valor-box">{{ usuarioDetalhe.cpf || '—' }}</div>
-              </div>
-              <div class="detalhe-form-campo">
-                <span>Estrutura</span>
-                <div class="detalhe-valor-box">{{ usuarioDetalhe.unidade || '—' }}</div>
-              </div>
-              <div class="detalhe-form-campo">
-                <span>Área</span>
-                <div class="detalhe-valor-box">{{ usuarioDetalhe.area || '—' }}</div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </template>
-
-    <!-- FORMULÁRIO NOVO / EDITAR -->
-    <template v-else>
-      <div class="form-page">
-        <div class="form-top-bar"></div>
-        <header class="form-header">
-          <button type="button" class="btn-voltar" @click="voltarLista">←</button>
-          <div>
-            <h1>{{ modo === 'novo' ? 'Cadastrar Novo Usuário' : 'Editar Usuário' }}</h1>
-            <p>
-              {{
-                modo === 'novo'
-                  ? 'Preencha as informações para criar um novo acesso ao SIPED'
-                  : 'Atualize os dados do colaborador. Deixe a senha em branco para manter a atual.'
-              }}
-            </p>
-          </div>
-        </header>
-
-        <form class="form-body" @submit.prevent="salvarUsuario">
-          <div v-if="erroFormulario" class="alert alert-error">{{ erroFormulario }}</div>
-
-          <section class="form-section">
-            <h2>Foto do perfil</h2>
-            <div class="foto-field">
-              <span class="avatar avatar-xl" :class="avatarClass(form.perfil)">
-                <img v-if="form.foto" :src="form.foto" alt="Prévia da foto" />
-                <template v-else>{{ iniciais(form.nome) }}</template>
-              </span>
-              <div class="foto-field-actions">
-                <label class="btn-foto">
-                  Enviar foto
-                  <input type="file" accept="image/*" @change="onFotoSelecionada" />
-                </label>
-                <button v-if="form.foto" type="button" class="link-btn" @click="limparFoto">
-                  Remover foto
-                </button>
-                <small class="campo-ajuda">JPG, PNG ou WEBP até 2 MB.</small>
-              </div>
-            </div>
-          </section>
-
-          <section class="form-section">
-            <h2>Dados Pessoais</h2>
-            <div class="form-grid">
-              <div class="form-group full">
-                <label for="nome"><FormLabel label="Nome Completo" required /></label>
-                <input id="nome" v-model="form.nome" type="text" placeholder="Ex: Ana Paula Souza" required maxlength="100" />
-              </div>
-              <div class="form-group">
-                <label for="email"><FormLabel label="E-mail (login)" required /></label>
-                <input id="email" v-model="form.email" type="email" placeholder="nome@df.senac.br" required maxlength="100" />
-              </div>
-              <div class="form-group">
-                <label for="telefone"><FormLabel label="Telefone" required /></label>
-                <input id="telefone" v-model="form.telefone" aria-required="true" type="text" placeholder="(61) 99999-9999" maxlength="20" @input="formatarTelefone" />
-              </div>
-              <div class="form-group">
-                <label for="cpf"><FormLabel label="CPF" required /></label>
-                <input id="cpf" v-model="form.cpf" aria-required="true" type="text" placeholder="000.000.000-00" maxlength="14" @input="formatarCpf" />
-              </div>
-              <div class="form-group">
-                <label for="area"><FormLabel label="Área de atuação" required /></label>
-                <input id="area" v-model="form.area" aria-required="true" type="text" placeholder="Ex: Coordenação Pedagógica" maxlength="100" />
-              </div>
-            </div>
-          </section>
-
-          <section class="form-section">
-            <h2>Nível de Acesso</h2>
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="perfil"><FormLabel label="Perfil" required /></label>
-                <SearchableSelect
-                  id="perfil"
-                  input-id="perfil"
-                  v-model="form.perfil"
-                  :options="[
-                    { value: 'Administrador', label: 'Administrador — acesso total e gestão de usuários' },
-                    { value: 'Editor', label: 'Editor — cria e altera dados do portfólio' },
-                    { value: 'Consultor', label: 'Consultor — somente leitura' },
-                  ]"
-                  empty-option="Selecione o nível de acesso"
-                  :required="true"
-                />
-              </div>
-              <div class="form-group">
-                <label for="unidade"><FormLabel label="Estrutura Institucional" required /></label>
-                <SearchableSelect
-                  id="unidade"
-                  input-id="unidade"
-                  v-model="form.unidade" aria-required="true"
-                  :options="unidades"
-                  empty-option="Selecione a estrutura institucional"
-                  :required="true"
-                />
-              </div>
-              <div class="form-group">
-                <label for="senha"><FormLabel label="Senha" :required="modo === 'novo'" /></label>
-                <input
-                  id="senha"
-                  v-model="form.senha"
-                  type="password"
-                  :required="modo === 'novo'"
-                  minlength="6"
-                  maxlength="100"
-                  :placeholder="modo === 'novo' ? 'Mínimo 6 caracteres' : 'Manter senha atual'"
-                />
-              </div>
-              <div class="form-group">
-                <label for="confirmarSenha"><FormLabel label="Confirmar senha" :required="modo === 'novo' || !!form.senha" /></label>
-                <input
-                  id="confirmarSenha"
-                  v-model="form.confirmarSenha"
-                  type="password"
-                  :required="modo === 'novo' || !!form.senha"
-                  minlength="6"
-                  maxlength="100"
-                  placeholder="Repita a senha"
-                />
-              </div>
-            </div>
-
-            <label class="form-check">
-              <input v-model="form.status" aria-required="true" type="checkbox" />
-              <FormLabel label="Usuário ativo" required />
-            </label>
-          </section>
-
-          <div class="form-actions">
-            <button type="button" class="btn-secondary" @click="voltarLista">Cancelar</button>
-            <button type="submit" class="btn-salvar" :disabled="salvando">
-              {{ salvando ? 'Salvando...' : modo === 'novo' ? 'Cadastrar Usuário' : 'Salvar Alterações' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </template>
-  </div>
+        Excluir este acesso
+      </button>
+    </form>
+  </section>
 </template>
 
 <script src="../scripts/Usuarios.js"></script>
-<style scoped src="../../css/Usuarios.css"></style>

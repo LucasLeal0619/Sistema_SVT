@@ -3,8 +3,6 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
 import SearchableSelect from './components/SearchableSelect.vue';
-import SgpTooltip from './components/ui/SgpTooltip.vue';
-import SgpHelpLabel from './components/ui/SgpHelpLabel.vue';
 import FormLabel from './components/ui/FormLabel.vue';
 import { initAcessibilidade } from './utils/acessibilidade';
 import { initScrollHorizontalTabelas, aplicarScrollHorizontalTabelas } from './utils/tableScrollSticky';
@@ -14,13 +12,12 @@ import '../css/app.css';
 import '../css/theme.css';
 import '../css/ui-a11y.css';
 import '../css/SearchableSelect.css';
+import '../css/svt.css';
 
 initAcessibilidade();
 
 const app = createApp(App);
 app.component('SearchableSelect', SearchableSelect);
-app.component('SgpTooltip', SgpTooltip);
-app.component('SgpHelpLabel', SgpHelpLabel);
 app.component('FormLabel', FormLabel);
 app.use(router);
 app.mount('#app');
